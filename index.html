@@ -1,0 +1,3683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenSnake</title>
+    <!-- Add Material Design Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+    <!-- Add Ace Editor CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/theme-tomorrow.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.0/mode-javascript.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/series-label.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <style>
+        /* Common Variables */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f3f3;
+            --border-color: #e7e7e7;
+            --text-secondary: #616161;
+            --text-muted: #9e9e9e;
+            --accent-color: #424242;
+            --shadow-common: 0 0 3px rgba(0, 0, 0, 0.05);
+            --background-hover: rgba(0, 0, 0, 0.1);
+            --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-code: 'Consolas', 'Courier New', monospace;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --font-size-xs: 10px;
+            --font-size-sm: 11px;
+            --font-size-lg: 13px;
+            --font-weight: 600;
+            --panel-max-width: 400px;
+            --panel-max-height: 100vh;
+            --panel-max-height-percentage: 100%;
+            /* Colors */
+            --color-success: #388e3c;
+            --color-error: #d32f2f;
+            --color-warning: #f57c00;
+            --color-info: #1976d2;
+            --color-purple: #68217A;
+            --color-teal: #008080;
+            /* Sizes */
+            --header-height: 22px;
+            --activity-bar-width: 48px;
+            --icon-size-sm: 14px;
+            /* Z-indices */
+            --z-index-base: 100;
+            /* Other */
+            --zero: 0;
+        }
+
+        /* Reset & Base Styles */
+        body {
+            display: flex;
+            margin: var(--zero);
+            font-family: var(--font-main);
+            height: var(--panel-max-height);
+            overflow: hidden;
+            background: var(--bg-primary);
+            color: var(--accent-color);
+        }
+
+        /* Common Interactive Elements */
+        .button {
+            padding: var(--spacing-xs) var(--spacing-md);
+            font-size: var(--spacing-md);
+            border: none;
+            cursor: pointer;
+            background: var(--accent-color);
+            color: var(--bg-primary);
+        }
+
+        .button.primary {
+            background: var(--accent-color);
+            color: var(--bg-primary);
+        }
+
+        .button:hover {
+            opacity: 0.9;
+        }
+
+        .button:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+        }
+
+        /* Common Form Elements */
+        .input {
+            width: 120px;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            font-size: var(--spacing-md);
+            color: var(--accent-color);
+            font-family: var(--font-code);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Common Text Styles */
+        .description {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            margin-top: var(--spacing-xs);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .label {
+            color: var(--text-secondary);
+            font-size: var(--spacing-md);
+        }
+
+        .value {
+            font-family: var(--font-code);
+            color: var(--accent-color);
+        }
+
+        /* Activity Bar Specific */
+        .activity-bar {
+            width: var(--activity-bar-width);
+            height: calc(100% - 39px);
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            flex-shrink: var(--zero);
+            display: flex;
+            flex-direction: column;
+            padding: var(--spacing-sm) 0;
+            justify-content: space-between;
+        }
+
+        /* Reused Panel Layouts */
+        .settings-panel,
+        .notifications-panel,
+        .network-status-panel,
+        .chat-panel {
+            position: fixed;
+            max-height: calc(var(--panel-max-height-percentage) - var(--header-height));
+            max-width: var(--panel-max-width);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-common);
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+        }
+
+        /* Group Containers */
+        .group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .group-title {
+            font-size: var(--spacing-md);
+            font-weight: var(--font-weight);
+            color: var(--accent-color);
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Item Layouts */
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            font-size: var(--spacing-md);
+        }
+
+        .item .label {
+            flex: 1;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: 0 var(--spacing-xs);
+            cursor: pointer;
+            height: var(--panel-max-height);
+            flex-shrink: var(--zero);
+        }
+
+        .status-indicator:hover {
+            background-color: var(--background-hover);
+        }
+
+        /* Game Board */
+        #game-board {
+            display: grid;
+            width: 90vmin;
+            height: 90vmin;
+            gap: 1px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            margin: var(--spacing-lg);
+            cursor: pointer;
+            box-shadow: var(--shadow-common);
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            width: var(--panel-max-height);
+            height: 300px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Resource Monitors */
+        .resource-monitor {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .resource-bar {
+            flex-grow: 1;
+            height: var(--spacing-xs);
+            background: var(--bg-secondary);
+            margin: 0 var(--spacing-sm);
+            overflow: hidden;
+        }
+
+        .resource-progress {
+            height: var(--panel-max-height);
+            background: var(--accent-color);
+            width: var(--zero);
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-column {
+            flex-direction: column;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        /* ...оставшиеся уникальные стили... */
+        .activity-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .activity-group:first-child {
+            overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        .activity-group:first-child::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        .activity-icon {
+            width: var(--activity-bar-width);
+            height: var(--activity-bar-width);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--accent-color);
+            opacity: 0.8;
+        }
+
+        .activity-icon:hover {
+            opacity: 1;
+            background-color: var(--background-hover);
+        }
+
+        .activity-icon.active {
+            opacity: 1;
+            position: relative;
+        }
+
+        .activity-icon.active::before {
+            content: '';
+            position: absolute;
+            left: var(--zero);
+            top: var(--zero);
+            bottom: var(--zero);
+            width: 2px;
+            background-color: var(--accent-color);
+        }
+
+        .activity-icon i {
+            font-size: 24px;
+            opacity: 0.8;
+        }
+
+        .activity-icon:hover i {
+            opacity: 1;
+        }
+
+        /* Main Content Container */
+        .content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: var(--panel-max-height);
+            overflow: hidden;
+        }
+
+        /* Game Container */
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: var(--header-height);
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: var(--zero);
+            font-size: var(--spacing-md);
+            color: var(--accent-color);
+            font-family: var(--font-main);
+            user-select: none;
+            position: relative; /* Add position relative */
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            margin-right: auto;
+            height: var(--panel-max-height);
+        }
+
+        .status-right {
+            margin-left: auto; /* Push to the right */
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: 0 10px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            height: var(--header-height); /* Явно задаём высоту */
+        }
+
+        .status-right::-webkit-scrollbar {
+            display: none;
+        }
+
+        .remote-indicator {
+            position: fixed; /* Change to fixed */
+            left: var(--zero);
+            bottom: var(--zero);
+            width: var(--activity-bar-width);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-color);
+            background-color: var(--accent-color);
+            flex-shrink: var(--zero);
+            cursor: pointer;
+            z-index: 1000; /* Ensure it's above other elements */
+        }
+
+        .remote-indicator:hover {
+            background-color: rgba(66, 66, 66, 0.9);
+        }
+
+        .remote-indicator i {
+            font-size: var(--spacing-lg);
+            color: var(--bg-primary);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: 0 var(--spacing-xs);
+            cursor: pointer;
+            font-size: var(--spacing-md);
+            color: var(--accent-color);
+            height: var(--panel-max-height);
+            flex-shrink: var(--zero);
+        }
+
+        .status-indicator:hover {
+            background-color: var(--background-hover);
+        }
+
+        .status-indicator i {
+            font-size: var(--icon-size-sm);
+            width: var(--icon-size-sm);
+            height: var(--icon-size-sm);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cell {
+            background: var(--bg-primary);
+            width: var(--panel-max-height-percentage);
+            height: var(--panel-max-height-percentage);
+            border: 1px solid var(--bg-secondary);
+        }
+
+        .snake {
+            position: relative;
+        }
+
+        .head::before,
+        .head::after {
+            display: none;
+        }
+
+        .food {
+            position: relative;
+            background: var(--bg-primary) !important;
+        }
+
+        .food::after {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            background: #000000;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Eyes */
+        .head > .eye-left,
+        .head > .eye-right {
+            position: absolute;
+            width: 35%;
+            height: 35%;
+            background: var(--bg-primary);
+        }
+
+        /* Pupils - fix specificity for both eyes */
+        .head > .eye-left::after,
+        .head > .eye-right::after {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            background: #333333;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Eye Positions */
+        .head.right .eye-left { top: 10%; left: 55%; }
+        .head.right .eye-right { bottom: 10%; left: 55%; }
+
+        .head.left .eye-left { top: 10%; right: 55%; }
+        .head.left .eye-right { bottom: 10%; right: 55%; }
+
+        .head.up .eye-left { top: 10%; left: 10%; }
+        .head.up .eye-right { top: 10%; right: 10%; }
+
+        .head.down .eye-left { bottom: 10%; left: 10%; }
+        .head.down .eye-right { bottom: 10%; right: 10%; }
+
+        /* Code Editor Styles */
+        .editor-container {
+            display: none;
+            position: absolute;
+            left: var(--activity-bar-width); /* activity-bar width */
+            right: var(--zero);
+            top: var(--zero);
+            bottom: var(--header-height); /* status-bar height */
+            background: var(--bg-primary);
+            z-index: var(--z-index-base);
+        }
+
+        #editor {
+            width: var(--panel-max-height-percentage);
+            height: calc(var(--panel-max-height) - 23px);
+            font-family: var(--font-code);
+            font-size: var(--icon-size-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Ace Editor Theme Overrides for VS Code Light Modern */
+        .ace-tomorrow {
+            background-color: var(--bg-primary) !important;
+        }
+
+        .ace-tomorrow .ace_gutter {
+            background: var(--bg-secondary) !important;
+            color: var(--accent-color) !important;
+            border-right: 1px solid var(--border-color) !important;
+        }
+
+        .ace-tomorrow .ace_print-margin {
+            background: var(--border-color) !important;
+        }
+
+        .ace-tomorrow .ace_cursor {
+            border-left: 2px solid #000000 !important;
+        }
+
+        .ace-tomorrow .ace_marker-layer .ace_selection {
+            background: #add6ff !important;
+        }
+
+        .ace-tomorrow .ace_marker-layer .ace_active-line {
+            background: var(--bg-secondary) !important;
+        }
+
+        .ace_editor.ace_autocomplete {
+            border: 1px solid var(--border-color) !important;
+            box-shadow: var(--shadow-common) !important;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight);
+            text-transform: uppercase;
+            color: var(--accent-color);
+        }
+
+        .notifications-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            cursor: pointer;
+            opacity: 0.8;
+            color: var(--accent-color);
+        }
+
+        .notifications-action:hover {
+            opacity: 1;
+        }
+
+        .notifications-list {
+            overflow-y: auto;
+            flex: 1;
+            padding: var(--zero);
+            margin: var(--zero);
+            list-style: none;
+        }
+
+        .notification-item {
+            padding: var(--font-size-xs);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: flex-start;
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .notification-icon {
+            width: var(--spacing-lg);
+            height: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: var(--zero);
+            font-size: var(--spacing-lg);
+        }
+
+        .notification-content {
+            flex: 1;
+            font-size: var(--spacing-md);
+            line-height: 1.4;
+        }
+
+        .notification-message {
+            color: var(--text-secondary);
+        }
+
+        .notification-time {
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            margin-top: var(--spacing-xs);
+        }
+
+        .notification-info .notification-icon { color: var(--color-info); }
+        .notification-warning .notification-icon { color: var(--color-warning); }
+        .notification-error .notification-icon { color: var(--color-error); }
+        .notification-success .notification-icon { color: var(--color-success); }
+
+        /* Add Statistics Panel Styles */
+        .statistics-container {
+            display: none;
+            position: absolute;
+            left: 49px;
+            right: var(--zero);
+            top: var(--zero);
+            bottom: 23px;
+            background: var(--bg-primary);
+            z-index: var(--z-index-base);
+            align-items: center; /* Центрируем содержимое */
+            overflow-y: auto;
+            padding: 20px; /* Add consistent padding */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center; /* Центрируем сетку */
+        }
+
+        .stats-card {
+            width: calc(var(--panel-max-height-percentage) - 30px);
+            padding: 15px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-common);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Добавляем стили для контента карточки */
+        .stats-card > * {
+            width: 100%;
+        }
+
+        .stats-card h3 {
+            margin: 0 0 15px 0;
+            font-size: var(--font-size-lg);
+            color: #333333;
+            font-weight: var(--font-weight);
+            font-family: var(--font-main);
+        }
+
+        .chart-container {
+            width: 100% !important; /* Важно для графиков */
+            min-width: 0;
+            height: 300px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .resource-monitor {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            font-size: var(--spacing-md);
+        }
+
+        .resource-label {
+            min-width: 300px;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+        }
+
+        .resource-value {
+            font-weight: var(--font-weight);
+            margin-left: var(--font-size-xs);
+            color: #333333;
+            font-family: var(--font-code);
+        }
+
+        .resource-bar {
+            flex-grow: 1;
+            height: var(--spacing-xs);
+            background: var(--bg-secondary);
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .resource-progress {
+            height: var(--panel-max-height);
+            background: var(--accent-color);
+            width: var(--zero);
+        }
+
+        .chart-container {
+            width: var(--panel-max-height);
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .system-info {
+            font-size: var(--icon-size-sm);
+            color: #666;
+            /* Добавляем flex-grow для заполнения доступного пространства */
+            flex: 1;
+            /* Добавляем overflow для длинного содержимого */
+            overflow-y: auto;
+        }
+
+        .system-info table {
+            width: var(--panel-max-height-percentage);
+            border-collapse: collapse;
+        }
+
+        .system-info td {
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid #eee;
+        }
+
+        .system-info tr:last-child td {
+            border-bottom: none;
+        }
+
+        .system-info td:first-child {
+            font-weight: bold;
+            width: 200px;
+        }
+
+        .resource-charts {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--font-size-xs);
+            /* Добавляем flex-grow для заполнения доступного пространства */
+            flex: 1;
+        }
+
+        .resource-charts .chart-container {
+            height: var(--zero); /* Сбрасываем фиксированную высоту */
+            flex: 1; /* Распределяем доступное пространство поровну */
+            margin-bottom: var(--zero);
+        }
+
+        .settings-panel {
+            left: var(--activity-bar-width);
+            bottom: var(--header-height);
+        }
+
+        .notifications-panel {
+            bottom: var(--header-height);
+            right: var(--zero);
+        }
+
+        .network-status-panel {
+            display: none;
+            position: fixed;
+            left: var(--activity-bar-width);
+            bottom: var(--header-height);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-common);
+            font-family: var(--font-main);
+            font-size: var(--spacing-md);
+            z-index: 999;
+        }
+
+        .network-status-content {
+            padding: var(--font-size-xs);
+        }
+
+        .network-status-item {
+            display: flex;
+            flex-direction: column;
+            padding: var(--spacing-xs) 0;
+            color: var(--accent-color);
+            font-size: var(--spacing-md);
+            line-height: 1.4;
+        }
+
+        .network-status-item .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .network-status-description {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            margin-top: 2px;
+            margin-left: var(--zero);
+            padding-left: var(--zero);
+            padding-bottom: var(--spacing-sm);
+        }
+
+        .network-status-item .label {
+            color: var(--text-secondary);
+            font-weight: var(--font-weight);
+        }
+
+        .network-status-item .value {
+            font-family: var(--font-code);
+            display: flex;
+        }
+
+        .network-status-item:not(:last-child) {
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .settings-content {
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group-title {
+            font-size: var(--spacing-md);
+            font-weight: var(--font-weight);
+            color: var(--accent-color);
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--spacing-md);
+        }
+
+        .settings-label {
+            flex: 1;
+            color: var(--text-secondary);
+        }
+
+        .settings-value {
+            width: 120px;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            font-size: var(--spacing-md);
+            color: var(--accent-color);
+            font-family: var(--font-code);
+        }
+
+        .settings-value:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .settings-description {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            margin-top: 0px;
+            margin-left: var(--zero);
+        }
+
+        .settings-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        /* Chatbot Styles */
+        .chat-panel {
+            left: var(--activity-bar-width);
+            bottom: var(--header-height);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .message {
+            max-width: 80vh;
+            padding: var(--spacing-sm);
+            font-size: var(--spacing-md);
+            line-height: 1.4;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--color-info);
+            color: white;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: var(--bg-secondary);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: 4px;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        @keyframes blink {
+            0% { opacity: .2; }
+            20% { opacity: 1; }
+            100% { opacity: .2; }
+        }
+
+        .typing-indicator span {
+            animation: blink 1.4s infinite both;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: .2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: .4s; }
+    </style>
+</head>
+<body>
+    <div class="activity-bar">
+        <div class="activity-group">
+            <div class="activity-icon" title="Code Editor">
+                <i class="mdi mdi-code-braces"></i>
+            </div>
+            <div class="activity-icon" title="Statistics">
+                <i class="mdi mdi-chart-box"></i>
+            </div>
+            <div class="activity-icon" title="Download Game">
+                <i class="mdi mdi-download"></i>
+            </div>
+            <div class="activity-icon" title="New Game Canvas">
+                <i class="mdi mdi-plus-box"></i>
+            </div>
+        </div>
+        <div class="activity-group">
+            <div class="activity-icon" title="Chat Support">
+                <i class="mdi mdi-message-question"></i>
+            </div>
+            <div class="activity-icon" title="Settings">
+                <i class="mdi mdi-cog"></i>
+            </div>
+        </div>
+    </div>
+    <div class="content-container">
+        <!-- Add Editor Container -->
+        <div class="editor-container">
+            <div id="editor"></div>
+        </div>
+        <div class="statistics-container">
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>System Resources</h3>
+                    <div class="resource-monitor">
+                        <span class="resource-label">CPU Usage</span>
+                        <div class="resource-bar">
+                            <div class="resource-progress" id="cpu-progress"></div>
+                        </div>
+                        <span class="resource-value" id="cpu-value">0%</span>
+                    </div>
+                    <div class="resource-monitor">
+                        <span class="resource-label">Memory Usage</span>
+                        <div class="resource-bar">
+                            <div class="resource-progress" id="memory-progress"></div>
+                        </div>
+                        <span class="resource-value" id="memory-value">0MB</span>
+                    </div>
+                    <div class="resource-charts">
+                        <div class="chart-container" id="cpu-usage-chart"></div>
+                        <div class="chart-container" id="memory-usage-chart"></div>
+                    </div>
+                </div>
+                <div class="stats-card">
+                    <h3>System Information</h3>
+                    <div class="system-info">
+                        <table id="system-info-table"></table>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>AI Evolution Progress</h3>
+                    <div class="chart-container" id="ai-evolution-chart"></div>
+                </div>
+                <div class="stats-card">
+                    <h3>Death Rate Analysis</h3>
+                    <div class="chart-container" id="death-rate-chart"></div>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>Food Consumption Rate</h3>
+                    <div class="chart-container" id="food-rate-chart"></div>
+                </div>
+                <div class="stats-card">
+                    <h3>Score Progression</h3>
+                    <div class="chart-container" id="score-chart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="game-container">
+            <div id="game-board"></div>
+        </div>
+        <div class="status-bar">
+            <div class="status-right">
+                <div class="status-indicator" id="deaths" title="Deaths">0</div>
+                <div class="status-indicator" id="food-eaten" title="Food Eaten">0</div>
+                <div class="status-indicator" id="snake-count" title="Active Snakes">0</div>
+                <div class="status-indicator" id="score" title="Score">0</div>
+                <div class="status-indicator" id="game-state" title="Game State">Stopped</div>
+                <div class="status-indicator" id="game-speed" title="Game Speed">1x</div>
+                <div class="status-indicator" id="version" title="Game Version">v0.4.2-dev</div>
+                <div class="status-indicator" id="notifications" title="Notifications">
+                    <i class="mdi mdi-bell-outline"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="remote-indicator" title="Network Status">
+        <i class="mdi mdi-link"></i>
+    </div>
+    <div class="network-status-panel">
+        <div class="header">
+            <span class="title"> Network Status</span>
+        </div>
+        <div class="network-status-content">
+            <div class="network-status-item">
+                <div class="row">
+                    <span class="label">Status</span>
+                    <span class="value"><i class="mdi mdi-circle online"></i>  Online</span>
+                </div>
+                <div class="network-status-description">Current connection state to the server.</div>
+            </div>
+            <div class="network-status-item">
+                <div class="row">
+                    <span class="label">Speed</span>
+                    <span class="value">--</span>
+                </div>
+                <div class="network-status-description">Current network connection speed (download bandwidth).</div>
+            </div>
+            <div class="network-status-item">
+                <div class="row">
+                    <span class="label">IPv4</span>
+                    <span class="value">--</span>
+                </div>
+                <div class="network-status-description">Your current IPv4 address.</div>
+            </div>
+            <div class="network-status-item">
+                <div class="row">
+                    <span class="label">Send</span>
+                    <span class="value">0 Kbps</span>
+                </div>
+                <div class="network-status-description">Data being sent from your client (upload).</div>
+            </div>
+            <div class="network-status-item">
+                <div class="row">
+                    <span class="label">Receive</span>
+                    <span class="value">0 Kbps</span>
+                </div>
+                <div class="network-status-description">Data being received by your client (download).</div>
+            </div>
+        </div>
+    </div>
+    <!-- Add Notification Panel -->
+    <div class="notifications-panel">
+        <div class="header">
+            <span class="title">Notifications</span>
+            <div class="notifications-actions">
+                <div class="notifications-action" title="Clear All">
+                    <i class="mdi mdi-notification-clear-all"></i>
+                </div>
+            </div>
+        </div>
+        <div class="notifications-list"></div>
+    </div>
+    <!-- Add Settings Panel -->
+    <div class="settings-panel">
+        <div class="header">
+            <span class="title">Settings</span>
+        </div>
+        <div class="settings-content">
+            <div class="settings-group">
+                <div class="settings-group-title">Game Settings</div>
+                <div class="settings-item">
+                    <div class="settings-label">Board Size</div>
+                    <input type="number" class="settings-value" id="setting-board-size" value="20" min="10" max="50">
+                </div>
+                <div class="settings-description">Grid size (10-50). Changes apply after restart.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Initial Speed</div>
+                    <input type="number" class="settings-value" id="setting-initial-speed" value="200" min="50" max="500">
+                </div>
+                <div class="settings-description">Starting game speed in milliseconds (50-500).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Split Length</div>
+                    <input type="number" class="settings-value" id="setting-split-length" value="6" min="4" max="20">
+                </div>
+                <div class="settings-description">Snake length required for splitting (4-20).</div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title">AI Settings</div>
+                <div class="settings-item">
+                    <div class="settings-label">Max Snakes</div>
+                    <input type="number" class="settings-value" id="setting-max-snakes" value="10" min="1" max="20">
+                </div>
+                <div class="settings-description">Maximum number of snakes allowed (1-20).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Food Spawn Interval</div>
+                    <input type="number" class="settings-value" id="setting-food-spawn" value="10" min="5" max="30">
+                </div>
+                <div class="settings-description">Moves between food spawns (5-30).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Decay Interval</div>
+                    <input type="number" class="settings-value" id="setting-decay" value="15" min="5" max="50">
+                </div>
+                <div class="settings-description">Moves before snake decay (5-50).</div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title">Performance Settings</div>
+                <div class="settings-item">
+                    <div class="settings-label">Speed Factor</div>
+                    <input type="number" class="settings-value" id="setting-speed-factor" value="10" min="1" max="20">
+                </div>
+                <div class="settings-description">Speed increase per tail segment (1-20).</div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title">Advanced Settings</div>
+                <div class="settings-description" style="margin-bottom: var(--spacing-md);">
+                    Warning: These settings can significantly impact game behavior and performance. Change with caution.
+                </div>
+                <div class="settings-item">
+                    <div class="settings-label">Golden Ratio</div>
+                    <input type="number" class="settings-value" id="setting-golden-ratio" value="0.618033988749895" min="0" max="1" step="0.000000000000001">
+                </div>
+                <div class="settings-description">Color generation golden ratio (0-1).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Initial Length</div>
+                    <input type="number" class="settings-value" id="setting-initial-length" value="1" min="1" max="5">
+                </div>
+                <div class="settings-description">Starting snake length (1-5).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Initial X</div>
+                    <input type="number" class="settings-value" id="setting-initial-x" value="10" min="0" max="50">
+                </div>
+                <div class="settings-description">Starting X position (0-board size).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Initial Y</div>
+                    <input type="number" class="settings-value" id="setting-initial-y" value="10" min="0" max="50">
+                </div>
+                <div class="settings-description">Starting Y position (0-board size).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Food X</div>
+                    <input type="number" class="settings-value" id="setting-food-x" value="5" min="0" max="50">
+                </div>
+                <div class="settings-description">Initial food X position (0-board size).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Food Y</div>
+                    <input type="number" class="settings-value" id="setting-food-y" value="5" min="0" max="50">
+                </div>
+                <div class="settings-description">Initial food Y position (0-board size).</div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Controls Customization</div>
+                <div class="settings-item">
+                    <div class="settings-label">Up Key</div>
+                    <input type="text" class="settings-value" id="setting-key-up" value="ArrowUp" readonly>
+                </div>
+                <div class="settings-description">Key binding for moving the snake upwards.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Down Key</div>
+                    <input type="text" class="settings-value" id="setting-key-down" value="ArrowDown" readonly>
+                </div>
+                <div class="settings-description">Key binding for moving the snake downwards.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Left Key</div>
+                    <input type="text" class="settings-value" id="setting-key-left" value="ArrowLeft" readonly>
+                </div>
+                <div class="settings-description">Key binding for moving the snake to the left.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Right Key</div>
+                    <input type="text" class="settings-value" id="setting-key-right" value="ArrowRight" readonly>
+                </div>
+                <div class="settings-description">Key binding for moving the snake to the right.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Reload Game</div>
+                    <input type="text" class="settings-value" id="setting-key-reload" value="r" readonly>
+                </div>
+                <div class="settings-description">Key binding for game reload.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Speed Up</div>
+                    <input type="text" class="settings-value" id="setting-key-speedup" value="+" readonly>
+                </div>
+                <div class="settings-description">Key binding for increasing game speed.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Slow Down</div>
+                    <input type="text" class="settings-value" id="setting-key-slowdown" value="-" readonly>
+                </div>
+                <div class="settings-description">Key binding for decreasing game speed.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Notifications</div>
+                    <input type="text" class="settings-value" id="setting-key-notifications" value="n" readonly>
+                </div>
+                <div class="settings-description">Key binding for notifications panel.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Save Code</div>
+                    <input type="text" class="settings-value" id="setting-key-savecode" value="s" readonly>
+                </div>
+                <div class="settings-description">Key binding for saving code changes (Ctrl+Key).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Settings</div>
+                    <input type="text" class="settings-value" id="setting-key-settings" value="," readonly>
+                </div>
+                <div class="settings-description">Key binding for settings panel.</div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title">Achievement Settings</div>
+                <div class="settings-item">
+                    <div class="settings-label">Enable Achievements</div>
+                    <input type="checkbox" class="settings-value" id="setting-enable-achievements" checked>
+                </div>
+                <div class="settings-description">Enable or disable achievement notifications.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Speed Master</div>
+                    <input type="checkbox" class="settings-value" id="setting-achieve-speed" checked>
+                </div>
+                <div class="settings-description">Achievement for reaching max speed.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Snake Charmer</div>
+                    <input type="checkbox" class="settings-value" id="setting-achieve-length" checked>
+                </div>
+                <div class="settings-description">Achievement for reaching max length.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Food Champion</div>
+                    <input type="checkbox" class="settings-value" id="setting-achieve-food" checked>
+                </div>
+                <div class="settings-description">Achievement for food collection milestones.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">AI Master</div>
+                    <input type="checkbox" class="settings-value" id="setting-achieve-ai" checked>
+                </div>
+                <div class="settings-description">Achievement for AI evolution milestones.</div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title">Score Tracking</div>
+                <div class="settings-item">
+                    <div class="settings-label">Track High Scores</div>
+                    <input type="checkbox" class="settings-value" id="setting-track-scores" checked>
+                </div>
+                <div class="settings-description">Save and display high scores.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Score Multiplier</div>
+                    <input type="number" class="settings-value" id="setting-score-multiplier" value="1" min="1" max="10">
+                </div>
+                <div class="settings-description">Multiply base score (1-10x).</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Bonus Points</div>
+                    <input type="checkbox" class="settings-value" id="setting-bonus-points" checked>
+                </div>
+                <div class="settings-description">Award bonus points for special achievements.</div>
+
+                <div class="settings-item">
+                    <div class="settings-label">Score History Size</div>
+                    <input type="number" class="settings-value" id="setting-history-size" value="10" min="5" max="50">
+                </div>
+                <div class="settings-description">Number of high scores to keep (5-50).</div>
+            </div>
+        </div>
+        <div class="settings-actions">
+            <button class="button" style="background-color: var(--border-color); color: var(--accent-color);" onclick="resetSettings()">Reset Defaults</button>
+            <button class="button" onclick="saveSettings()">Apply</button>
+        </div>
+    </div>
+    <div class="chat-panel">
+        <div class="header">
+            <span class="title">Game Assistant</span>
+        </div>
+        <div class="chat-messages">
+            <div class="message bot">
+                Hi! I'm your GenSnake game assistant. How can I help you today?
+            </div>
+        </div>
+        <div class="typing-indicator">
+            Assistant is typing<span>.</span><span>.</span><span>.</span>
+        </div>
+        <div class="chat-input-container">
+            <input type="text" class="input" placeholder="Ask me about the game...">
+            <button class="button">Send</button>
+        </div>
+    </div>
+    <script type="module">
+        // Change constants to variables
+        let SPLIT_LENGTH = 6;
+        let BOARD_SIZE = 20;
+        let INITIAL_SPEED = 200;
+        let DECAY_INTERVAL = 15;
+        let SPEED_FACTOR = 10;
+        let MAX_SNAKES = 10;
+        let FOOD_SPAWN_INTERVAL = 10;
+        let INITIAL_SNAKE_LENGTH = 1;
+
+        // Keep these as constants since they don't change during runtime
+        let GOLDEN_RATIO = 0.618033988749895;
+        let hue = Math.random();
+
+        // Keep AI constants as they are
+        const AI_EVOLUTION_STAGES = {
+            BASIC: 0,    // Random valid moves
+            FOOD: 1,     // Moves towards food
+            AVOID: 2,    // Avoids obstacles
+            ASTAR: 3     // Full pathfinding
+        };
+
+        // Generate vibrant colors using golden ratio
+        const generateSnakeColor = () => {
+            hue = (hue + GOLDEN_RATIO) % 1;
+            return `hsl(${Math.floor(hue * 360)}, 90%, 50%)`;
+        };
+
+        // Add snake color manipulation
+        const darkenColor = (color) => {
+            const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            if (match) {
+                const [_, h, s, l] = match;
+                return `hsl(${h}, ${s}%, ${Math.max(30, Number(l) - 15)}%)`;
+            }
+            return color;
+        };
+
+        // Initialize board with dynamic grid template
+        const board = document.getElementById('game-board');
+        board.style.gridTemplate = `repeat(${BOARD_SIZE}, 1fr) / repeat(${BOARD_SIZE}, 1fr)`;
+
+        // Modify color generation to ensure uniqueness
+        let usedColors = new Set();
+        const generateUniqueSnakeColor = () => {
+            let color;
+            let attempts = 0;
+            do {
+                color = generateSnakeColor();
+                attempts++;
+                // Reset hue if too many attempts to prevent infinite loop
+                if (attempts > 20) {
+                    usedColors.clear();
+                    hue = Math.random();
+                }
+            } while (usedColors.has(color));
+            usedColors.add(color);
+            return color;
+        };
+
+        let moveCount = 0;
+
+        // Modify game state to support AI and include move counter
+        const gameState = {
+            snakes: [{
+                body: [{x: 10, y: 10}],
+                direction: {x: 0, y: 0},
+                color: generateUniqueSnakeColor(),
+                isActive: true,
+                isPlayer: true,
+                aiLevel: 0,
+                score: 0,
+                moveCounter: 0,  // Add move counter
+                lastMoveTime: 0 // Add timestamp of last move
+            }],
+            foodItems: [{x: 5, y: 5}], // Change to array of food items
+            score: 0,
+            isRunning: false,
+            playerSnakeIndex: 0
+        };
+
+        const cells = Array.from({length: BOARD_SIZE * BOARD_SIZE}, () => {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            board.appendChild(cell);
+            return cell;
+        });
+
+        // Game controls
+        const controls = {
+            'ArrowUp': {x: 0, y: -1},
+            'ArrowDown': {x: 0, y: 1},
+            'ArrowLeft': {x: -1, y: 0},
+            'ArrowRight': {x: 1, y: 0}
+        };
+
+        // Modify controls to affect only the first active snake
+        document.addEventListener('keydown', e => {
+            const newDirection = controls[e.key];
+            if (!newDirection) return;
+
+            const activeSnake = gameState.snakes.find(snake => snake.isActive && snake.isPlayer);
+            if (!activeSnake) return;
+
+            const {x, y} = activeSnake.direction;
+            if (Math.abs(newDirection.x) !== Math.abs(x) ||
+                Math.abs(newDirection.y) !== Math.abs(y)) {
+                activeSnake.direction = newDirection;
+            }
+
+            if (!gameState.isRunning) {
+                gameState.isRunning = true;
+                gameLoop();
+            }
+        });
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.key === currentSettings.controls.reload) {
+                resetGame();
+                notifications.add('Game Reset', 'Game has been reloaded.', notificationTypes.INFO);
+            }
+
+            if (e.key === currentSettings.controls.speedup) {
+                SPEED_FACTOR = Math.min(20, SPEED_FACTOR + 1);
+                notifications.add('Speed Up', `Speed factor increased to ${SPEED_FACTOR}`, notificationTypes.INFO);
+            }
+
+            if (e.key === currentSettings.controls.slowdown) {
+                SPEED_FACTOR = Math.max(1, SPEED_FACTOR - 1);
+                notifications.add('Slow Down', `Speed factor decreased to ${SPEED_FACTOR}`, notificationTypes.INFO);
+            }
+
+            if (e.key === currentSettings.controls.notifications) {
+                notifications.togglePanel();
+            }
+
+            if (e.key === currentSettings.controls.settings) {
+                settingsPanel.style.display = settingsPanel.style.display === 'flex' ? 'none' : 'flex';
+                settingsButton.classList.toggle('active');
+            }
+
+            if (e.ctrlKey && e.key === currentSettings.controls.savecode && editor) {
+                const code = editor.getValue();
+                try {
+                    eval(code);
+                    notifications.add('Code Saved', 'Changes have been applied successfully.', notificationTypes.SUCCESS);
+                } catch (error) {
+                    notifications.add('Code Error', error.message, notificationTypes.ERROR);
+                }
+            }
+        });
+
+        // Core game functions
+        const getCellIndex = (x, y) => y * BOARD_SIZE + x;
+
+        // Update food generation to handle multiple items
+        const generateFood = () => {
+            const emptyCells = cells.reduce((acc, cell, i) => {
+                const x = i % BOARD_SIZE;
+                const y = Math.floor(i / BOARD_SIZE);
+                if (!cell.className.includes('snake') &&
+                    !gameState.foodItems.some(food => food.x === x && food.y === y)) {
+                    acc.push({ x, y });
+                }
+                return acc;
+            }, []);
+
+            if (emptyCells.length > 0) {
+                return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            }
+            return null;
+        };
+
+        // Add AI helper functions
+        const getValidMoves = (snake) => {
+            const head = snake.body[0];
+            return [
+                {x: 1, y: 0}, {x: -1, y: 0},
+                {x: 0, y: 1}, {x: 0, y: -1}
+            ].filter(dir => {
+                const newX = head.x + dir.x;
+                const newY = head.y + dir.y;
+                const oppositeDir = snake.direction.x === -dir.x && snake.direction.y === -dir.y;
+                return !oppositeDir && !isCollision(newX, newY, gameState.snakes.indexOf(snake));
+            });
+        };
+
+        const manhattanDistance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+
+        // AI decision making based on evolution level
+        const getAIMove = (snake) => {
+            const validMoves = getValidMoves(snake);
+            if (!validMoves.length) return snake.direction;
+
+            switch(snake.aiLevel) {
+                case AI_EVOLUTION_STAGES.BASIC:
+                    return validMoves[Math.floor(Math.random() * validMoves.length)];
+
+                case AI_EVOLUTION_STAGES.FOOD:
+                    return validMoves.reduce((best, move) => {
+                        const newPos = {
+                            x: snake.body[0].x + move.x,
+                            y: snake.body[0].y + move.y
+                        };
+                        const distToFood = manhattanDistance(newPos, gameState.foodItems[0]);
+                        const currentBestDist = manhattanDistance(
+                            {x: snake.body[0].x + best.x, y: snake.body[0].y + best.y},
+                            gameState.foodItems[0]
+                        );
+                        return distToFood < currentBestDist ? move : best;
+                    }, validMoves[0]);
+
+                case AI_EVOLUTION_STAGES.AVOID:
+                    return validMoves.reduce((best, move) => {
+                        const newPos = {
+                            x: snake.body[0].x + move.x,
+                            y: snake.body[0].y + move.y
+                        };
+                        const distToFood = manhattanDistance(newPos, gameState.foodItems[0]);
+                        const spaceScore = getFloodFill(newPos.x, newPos.y);
+                        return spaceScore > best.space ||
+                               (spaceScore === best.space && distToFood < best.dist)
+                            ? { move, space: spaceScore, dist: distToFood }
+                            : best;
+                    }, { move: validMoves[0], space: -1, dist: Infinity }).move;
+
+                case AI_EVOLUTION_STAGES.ASTAR:
+                    const path = findPathAStar(snake.body[0], gameState.foodItems[0], snake);
+                    return path.length > 1 ? {
+                        x: path[1].x - path[0].x,
+                        y: path[1].y - path[0].y
+                    } : getAIMove({...snake, aiLevel: AI_EVOLUTION_STAGES.AVOID});
+            }
+        };
+
+        // Add pathfinding helper functions
+        const getFloodFill = (x, y) => {
+            const visited = new Set();
+            const queue = [{x, y}];
+
+            while (queue.length) {
+                const pos = queue.shift();
+                const key = `${pos.x},${pos.y}`;
+                if (visited.has(key)) continue;
+                visited.add(key);
+
+                [{x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}].forEach(dir => {
+                    const newX = pos.x + dir.x;
+                    const newY = pos.y + dir.y;
+                    if (!isCollision(newX, newY)) {
+                        queue.push({x: newX, y: newY});
+                    }
+                });
+            }
+            return visited.size;
+        };
+
+        const findPathAStar = (start, goal, snake) => {
+            const openSet = new Set([JSON.stringify(start)]);
+            const cameFrom = new Map();
+            const gScore = new Map();
+            const fScore = new Map();
+
+            gScore.set(JSON.stringify(start), 0);
+            fScore.set(JSON.stringify(start), manhattanDistance(start, goal));
+
+            while (openSet.size > 0) {
+                const current = JSON.parse([...openSet].reduce((a, b) =>
+                    (fScore.get(a) || Infinity) < (fScore.get(b) || Infinity) ? a : b
+                ));
+
+                if (current.x === goal.x && current.y === goal.y) {
+                    const path = [current];
+                    let currentKey = JSON.stringify(current);
+                    while (cameFrom.has(currentKey)) {
+                        currentKey = cameFrom.get(currentKey);
+                        path.unshift(JSON.parse(currentKey));
+                    }
+                    return path;
+                }
+
+                openSet.delete(JSON.stringify(current));
+
+                getValidMoves({...snake, body: [current]}).forEach(move => {
+                    const neighbor = {x: current.x + move.x, y: current.y + move.y};
+                    const neighborKey = JSON.stringify(neighbor);
+                    const tentativeGScore = (gScore.get(JSON.stringify(current)) || 0) + 1;
+
+                    if (tentativeGScore < (gScore.get(neighborKey) || Infinity)) {
+                        cameFrom.set(neighborKey, JSON.stringify(current));
+                        gScore.set(neighborKey, tentativeGScore);
+                        fScore.set(neighborKey, tentativeGScore + manhattanDistance(neighbor, goal));
+                        openSet.add(neighborKey);
+                    }
+                });
+            }
+            return [];
+        };
+
+        // Add snake splitting logic
+        const darkenSnakeColor = (color) => {
+            if (color.startsWith('hsl')) {
+                const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                if (match) {
+                    const [_, h, s, l] = match;
+                    return `hsl(${h}, ${s}%, ${Math.max(30, Number(l) - 15)}%)`;
+                }
+            }
+            return color;
+        };
+
+        const splitSnake = (snakeIndex) => {
+            const snake = gameState.snakes[snakeIndex];
+            const midPoint = Math.floor(snake.body.length / 2);
+
+            // Ensure proper AI level increment
+            const nextAiLevel = Math.min(
+                AI_EVOLUTION_STAGES.ASTAR,
+                snake.aiLevel + 1
+            );
+
+            // Create new snake from the tail half with darkened parent color
+            const newSnake = {
+                body: snake.body.slice(midPoint).reverse(),
+                direction: {
+                    x: -snake.direction.x,
+                    y: -snake.direction.y
+                },
+                color: darkenSnakeColor(snake.color),
+                isActive: true,
+                isPlayer: false,
+                aiLevel: nextAiLevel, // Set incremented AI level
+                score: 0,
+                moveCounter: 0,
+                lastMoveTime: performance.now()
+            };
+
+            // Update original snake
+            snake.body = snake.body.slice(0, midPoint);
+            gameState.snakes.push(newSnake);
+        };
+
+        // Add decay handling function
+        const handleSnakeDecay = (snake) => {
+            snake.moveCounter++;
+            if (snake.moveCounter >= DECAY_INTERVAL) {
+                snake.moveCounter = 0;
+                snake.body.pop(); // Remove tail segment
+
+                // Kill snake if no body left
+                if (snake.body.length === 0) {
+                    snake.isActive = false;
+                    if (snake.isPlayer) {
+                        const nextSnake = gameState.snakes.find(s =>
+                            s.isActive && !s.isPlayer
+                        );
+                        if (nextSnake) {
+                            nextSnake.isPlayer = true;
+                            gameState.playerSnakeIndex = gameState.snakes.indexOf(nextSnake);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Add speed calculation function
+        const getSnakeSpeed = (snake) => {
+            const tailLength = Math.max(0, snake.body.length - 1);
+            return Math.max(50, INITIAL_SPEED - (tailLength * SPEED_FACTOR));
+        };
+
+        // Add snake creation function
+        const createSnake = (x, y, isPlayer = false) => {
+            if (gameState.snakes.length >= MAX_SNAKES) return null;
+
+            // Check if initial positions are occupied
+            for(let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
+                if (isCollision(x - i, y)) return null;
+            }
+
+            // Create body array with initial length
+            const body = [];
+            for(let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
+                body.push({x: x - i, y}); // Stack body parts horizontally
+            }
+
+            const newSnake = {
+                body: body,
+                direction: {x: 0, y: 0},
+                color: generateUniqueSnakeColor(),
+                isActive: true,
+                isPlayer: isPlayer,
+                aiLevel: Math.floor(Math.random() * AI_EVOLUTION_STAGES.ASTAR),
+                score: 0,
+                moveCounter: 0,
+                lastMoveTime: performance.now()
+            };
+
+            gameState.snakes.push(newSnake);
+            return newSnake;
+        };
+
+        // Add click handler for the game board
+        board.addEventListener('click', (e) => {
+            if (!gameState.isRunning) return;
+
+            const rect = board.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / (rect.width / BOARD_SIZE));
+            const y = Math.floor((e.clientY - rect.top) / (rect.height / BOARD_SIZE));
+
+            const newSnake = createSnake(x, y);
+            if (newSnake) {
+                if (!gameState.snakes.some(snake => snake.isActive)) {
+                    newSnake.isPlayer = true;
+                    gameState.playerSnakeIndex = gameState.snakes.length - 1;
+                }
+                updateBoard();
+            }
+        });
+
+        // Modify updateBoard for multiple snakes
+        const updateBoard = () => {
+            cells.forEach(cell => {
+                cell.className = 'cell';
+                cell.innerHTML = ''; // Clear any existing eyes
+                cell.style.background = '';
+            });
+
+            gameState.snakes.forEach(snake => {
+                if (!snake.isActive) return;
+
+                snake.body.forEach((pos, index) => {
+                    const cell = cells[getCellIndex(pos.x, pos.y)];
+                    cell.classList.add('snake');
+                    cell.style.background = snake.color;
+
+                    if (index === 0) { // Snake head
+                        cell.classList.add('head');
+                        if (snake.direction.x === 1) cell.classList.add('right');
+                        else if (snake.direction.x === -1) cell.classList.add('left');
+                        else if (snake.direction.y === -1) cell.classList.add('up');
+                        else if (snake.direction.y === 1) cell.classList.add('down');
+
+                        // Add eyes
+                        const eyeLeft = document.createElement('div');
+                        const eyeRight = document.createElement('div');
+                        eyeLeft.className = 'eye-left';
+                        eyeRight.className = 'eye-right';
+                        cell.appendChild(eyeLeft);
+                        cell.appendChild(eyeRight);
+                    }
+                });
+            });
+
+            // Render all food items
+            gameState.foodItems.forEach(food => {
+                cells[getCellIndex(food.x, food.y)].classList.add('food');
+            });
+        };
+
+        // Modified collision check for multiple snakes
+        const isCollision = (x, y, excludeSnakeIndex = -1) => {
+            // Check wall collision
+            if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+                return true;
+            }
+            // Check self collision
+            return gameState.snakes.some((snake, index) =>
+                index !== excludeSnakeIndex &&
+                snake.isActive &&
+                snake.body.some(segment => segment.x === x && segment.y === y)
+            );
+        };
+
+        // Modify gameLoop for individual snake speeds
+        const gameLoop = () => {
+            if (!gameState.isRunning) return;
+
+            const currentTime = performance.now();
+            let allSnakesDead = true;
+            let nextMoveTime = Infinity;
+
+            // Increment move counter and spawn food
+            moveCount++;
+            if (moveCount >= FOOD_SPAWN_INTERVAL) {
+                moveCount = 0;
+                const newFood = generateFood();
+                if (newFood) {
+                    gameState.foodItems.push(newFood);
+                }
+            }
+
+            gameState.snakes.forEach((snake, index) => {
+                if (!snake.isActive) return;
+
+                const snakeSpeed = getSnakeSpeed(snake);
+                if (currentTime - snake.lastMoveTime < snakeSpeed) {
+                    allSnakesDead = false;
+                    nextMoveTime = Math.min(nextMoveTime, snake.lastMoveTime + snakeSpeed);
+                    return;
+                }
+
+                if (!snake.isPlayer) {
+                    snake.direction = getAIMove(snake);
+                }
+
+                const head = {...snake.body[0]};
+                head.x = head.x + snake.direction.x;
+                head.y = head.y + snake.direction.y;
+
+                // Enhanced collision detection
+                if (isCollision(head.x, head.y, index)) {
+                    handleSnakeDeath(snake);
+                    snake.isActive = false;
+                    if (snake.isPlayer) {
+                        // Transfer control to next active snake
+                        const nextSnake = gameState.snakes.find(s =>
+                            s.isActive && !s.isPlayer
+                        );
+                        if (nextSnake) {
+                            nextSnake.isPlayer = true;
+                            gameState.playerSnakeIndex = gameState.snakes.indexOf(nextSnake);
+                        }
+                    }
+                    return;
+                }
+
+                allSnakesDead = false;
+                snake.body.unshift(head);
+                snake.lastMoveTime = currentTime;
+
+                // Food collision - update the call
+                handleFoodCollision(head, index);
+
+                // Apply decay
+                handleSnakeDecay(snake);
+                nextMoveTime = Math.min(nextMoveTime, currentTime + getSnakeSpeed(snake));
+            });
+
+            if (allSnakesDead) {
+                gameState.isRunning = false;
+                resetGame();
+                return;
+            }
+
+            updateBoard();
+            const delay = Math.max(0, nextMoveTime - performance.now());
+            setTimeout(gameLoop, delay);
+        };
+
+        // Modify resetGame to use INITIAL_SNAKE_LENGTH
+        const resetGame = () => {
+            usedColors.clear();
+            const initialBody = [];
+            // Create initial snake body based on INITIAL_SNAKE_LENGTH
+            for(let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
+                initialBody.push({x: 10 - i, y: 10}); // Stack body parts horizontally
+            }
+            gameState.snakes = [{
+                body: initialBody,
+                direction: {x: 0, y: 0},
+                color: generateUniqueSnakeColor(),
+                isActive: true,
+                isPlayer: true,
+                aiLevel: 0,
+                score: 0,
+                moveCounter: 0,
+                lastMoveTime: performance.now()
+            }];
+            gameState.foodItems = [generateFood()];
+            moveCount = 0;
+            gameState.score = 0;
+            statusElements.score.textContent = '0';
+            updateBoard();
+        };
+
+        // Add status bar update logic
+        let deaths = 0;
+        let foodEaten = 0;
+        let lastCPUTime = 0;
+        let lastCPUUpdate = performance.now();
+
+        // Status bar elements
+        const statusElements = {
+            snakeCount: document.getElementById('snake-count'),
+            deaths: document.getElementById('deaths'),
+            food: document.getElementById('food-eaten'),
+            score: document.getElementById('score'),
+            gameState: document.getElementById('game-state'),
+            speed: document.getElementById('game-speed')
+        };
+
+        // Add snake count update function
+        let lastSnakeCountUpdate = 0;
+        const updateSnakeCount = () => {
+            const now = performance.now();
+            if (now - lastSnakeCountUpdate >= 1000) { // Update every second
+                const activeSnakes = gameState.snakes.filter(snake => snake.isActive).length;
+                statusElements.snakeCount.textContent = `${activeSnakes}`;
+                lastSnakeCountUpdate = now;
+            }
+        };
+
+        // Update status bar
+        const updateStatusBar = () => {
+            updateSnakeCount();
+            statusElements.deaths.textContent = `${deaths}`;
+            statusElements.food.textContent = `${foodEaten}`;
+            statusElements.score.textContent = `${gameState.score}`;
+            statusElements.gameState.textContent = gameState.isRunning ? 'Running' : 'Stopped';
+            const speedMultiplier = Math.round((200 / getSnakeSpeed(gameState.snakes[0])) * 10) / 10;
+            statusElements.speed.textContent = `${speedMultiplier}x`;
+            requestAnimationFrame(updateStatusBar);
+        };
+
+        // Modify food collision handling
+        const handleFoodCollision = (head, snakeIndex) => {
+            const foodIndex = gameState.foodItems.findIndex(
+                food => food.x === head.x && food.y === head.y
+            );
+
+            if (foodIndex !== -1) {
+                foodEaten++;
+                let points = 10 * currentSettings.scoring.multiplier;
+
+                // Add bonus points if enabled
+                if (currentSettings.scoring.bonusPoints) {
+                    const snake = gameState.snakes[snakeIndex];
+                    if (snake.body.length >= 10) points += 5;
+                    if (snake.body.length >= 20) points += 10;
+                    if (foodEaten % 10 === 0) points += 15;
+                }
+
+                gameState.snakes[snakeIndex].score += points;
+                gameState.score += points;
+                statusElements.score.textContent = `${gameState.score}`;
+                gameState.foodItems.splice(foodIndex, 1);
+
+                if (currentSettings.scoring.trackScores) {
+                    updateHighScores(gameState.score);
+                }
+
+                if (gameState.snakes[snakeIndex].body.length === SPLIT_LENGTH) {
+                    splitSnake(snakeIndex);
+                }
+            } else {
+                gameState.snakes[snakeIndex].body.pop();
+            }
+
+            const snake = gameState.snakes[snakeIndex];
+            checkAchievements(snake);
+        };
+
+        // Modify snake death handling
+        const handleSnakeDeath = (snake) => {
+            snake.isActive = false;
+            deaths++; // Increment deaths counter for any snake death
+
+            if (snake.isPlayer) {
+                // Find next available snake for player control
+                const nextSnake = gameState.snakes.find(s => s.isActive && !s.isPlayer);
+                if (nextSnake) {
+                    const oldAiLevel = nextSnake.aiLevel; // Store AI level
+                    nextSnake.isPlayer = true;
+                    nextSnake.aiLevel = oldAiLevel; // Restore AI level
+                    gameState.playerSnakeIndex = gameState.snakes.indexOf(nextSnake);
+
+                    // Ensure other snakes maintain their AI behavior and levels
+                    gameState.snakes.forEach(s => {
+                        if (s !== nextSnake && s.isActive) {
+                            s.isPlayer = false;
+                        }
+                    });
+                }
+            }
+        };
+
+        // Add status bar interaction
+        statusElements.gameState.addEventListener('click', () => {
+            gameState.isRunning = !gameState.isRunning;
+            // Add notification about game state change
+            notifications.add(
+                'Game State Changed',
+                gameState.isRunning ? 'Game started running.' : 'Game has been stopped.',
+                gameState.isRunning ? notificationTypes.SUCCESS : notificationTypes.WARNING
+            );
+            if (gameState.isRunning) gameLoop();
+        });
+
+        // Initialize status bar
+        updateStatusBar();
+
+        // Initialize game
+        resetGame();
+
+        // Add download handler
+        const downloadHandler = () => {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'gensnake.html';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+
+        // Add click handler for download icon
+        document.querySelector('.activity-icon[title="Download Game"]')
+            .addEventListener('click', downloadHandler);
+
+        // Add Code Editor functionality
+        const editorContainer = document.querySelector('.editor-container');
+        const codeEditorButton = document.querySelector('.activity-icon[title="Code Editor"]');
+        let editor = null;
+
+        // Initialize Ace Editor
+        function initEditor() {
+            if (!editor) {
+                editor = ace.edit("editor");
+                editor.setTheme("ace/theme/tomorrow");
+                editor.session.setMode("ace/mode/javascript");
+                editor.setOptions({
+                    fontSize: "14px",
+                    printMargin: true,
+                    printMarginColumn: 80,
+                    highlightActiveLine: true,
+                    highlightSelectedWord: true,
+                    cursorStyle: "ace",
+                    behavioursEnabled: true,
+                    wrapBehavioursEnabled: true,
+                    autoScrollEditorIntoView: true,
+                    copyWithEmptySelection: false,
+                    useSoftTabs: true,
+                    tabSize: 4
+                });
+
+                // Extract script content
+                const scriptContent = document.querySelector('script[type="module"]').textContent;
+                editor.setValue(scriptContent.trim(), -1);
+                editor.setReadOnly(false);
+            }
+        }
+
+        // Toggle editor visibility
+        codeEditorButton.addEventListener('click', () => {
+            const isVisible = editorContainer.style.display === 'block';
+            editorContainer.style.display = isVisible ? 'none' : 'block';
+            codeEditorButton.classList.toggle('active');
+
+            if (!isVisible) {
+                initEditor();
+                editor.resize();
+                editor.focus();
+            }
+        });
+
+        // Add Notifications System
+        const notificationTypes = {
+            INFO: 'info',
+            WARNING: 'warning',
+            ERROR: 'error',
+            SUCCESS: 'success'
+        };
+
+        const notificationIcons = {
+            info: 'mdi-information',
+            warning: 'mdi-alert',
+            error: 'mdi-alert-circle',
+            success: 'mdi-check-circle'
+        };
+
+        class NotificationsManager {
+            constructor() {
+                this.notifications = [];
+                this.panel = document.querySelector('.notifications-panel');
+                this.list = document.querySelector('.notifications-list');
+                this.indicator = document.getElementById('notifications').querySelector('i');
+
+                this.setupEventListeners();
+                this.updateIndicator();
+            }
+
+            setupEventListeners() {
+                this.indicator.addEventListener('click', () => this.togglePanel());
+                document.querySelector('.notifications-action').addEventListener('click', () => this.clearAll());
+
+                // Close panel when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.panel.contains(e.target) && !this.indicator.contains(e.target)) {
+                        this.panel.style.display = 'none';
+                    }
+                });
+            }
+
+            add(title, message, type = notificationTypes.INFO) {
+                const notification = {
+                    id: Date.now(),
+                    title,
+                    message,
+                    type,
+                    timestamp: new Date(),
+                    read: this.panel.style.display === 'flex' // Отмечаем как прочитанное если панель открыта
+                };
+
+                this.notifications.unshift(notification);
+                this.updateUI();
+                return notification.id;
+            }
+
+            remove(id) {
+                this.notifications = this.notifications.filter(n => n.id !== id);
+                this.updateUI();
+            }
+
+            clearAll() {
+                this.notifications = [];
+                this.updateUI();
+            }
+
+            togglePanel() {
+                const isVisible = this.panel.style.display === 'flex';
+                this.panel.style.display = isVisible ? 'none' : 'flex';
+                if (!isVisible) {
+                    this.markAllAsRead();
+                }
+            }
+
+            markAllAsRead() {
+                this.notifications.forEach(n => n.read = true);
+                this.updateIndicator();
+            }
+
+            updateIndicator() {
+                const hasUnread = this.notifications.some(n => !n.read);
+                this.indicator.className = `mdi ${hasUnread ? 'mdi-bell' : 'mdi-bell-outline'}`;
+            }
+
+            updateUI() {
+                this.list.innerHTML = '';
+                this.notifications.forEach(n => {
+                    // Если панель открыта, отмечаем уведомление как прочитанное
+                    if (this.panel.style.display === 'flex') {
+                        n.read = true;
+                    }
+
+                    const item = document.createElement('div');
+                    item.className = `notification-item notification-${n.type}`;
+                    if (!n.read) {
+                        item.classList.add('unread');
+                    }
+
+                    const timeAgo = this.getTimeAgo(n.timestamp);
+
+                    item.innerHTML = `
+                        <div class="notification-icon">
+                            <i class="mdi ${notificationIcons[n.type]}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="title">${n.title}</div>
+                            <div class="notification-message">${n.message}</div>
+                            <div class="notification-time">${timeAgo}</div>
+                        </div>
+                    `;
+
+                    this.list.appendChild(item);
+                });
+
+                this.updateIndicator();
+            }
+
+            getTimeAgo(timestamp) {
+                const seconds = Math.floor((new Date() - timestamp) / 1000);
+                if (seconds < 60) return 'just now';
+                const minutes = Math.floor(seconds / 60);
+                if (minutes < 60) return `${minutes}m ago`;
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}h ago`;
+                const days = Math.floor(hours / 24);
+                return `${days}d ago`;
+            }
+        }
+
+        // Initialize notifications manager
+        const notifications = new NotificationsManager();
+
+        // Add notification events
+        const addGameNotifications = () => {
+            // Системные уведомления при инициализации
+            notifications.add('Game Initialized', 'Snake game has been successfully loaded.', notificationTypes.SUCCESS);
+            notifications.add('Controls Ready', 'Use arrow keys to control the snake.', notificationTypes.INFO);
+            notifications.add('Game Version', 'Running GenSnake v0.4.2-dev.', notificationTypes.INFO);
+            notifications.add('System Check', 'Performing initial system check...', notificationTypes.INFO);
+
+            // Проверка производительности браузера
+            const browserPerformance = window.performance.now() < 100;
+            notifications.add(
+                'Browser Performance',
+                browserPerformance ? 'Browser performance is optimal.' : 'Browser performance might be limited.',
+                browserPerformance ? notificationTypes.SUCCESS : notificationTypes.WARNING
+            );
+
+            // Мониторинг памяти
+            let lastMemoryUsage = 0;
+            setInterval(() => {
+                if ('memory' in performance) {
+                    const memory = performance.memory;
+                    const used = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+
+                    // Уведомления о памяти
+                    if (used > 100) {
+                        notifications.add('Critical Memory Usage', `Memory usage is very high: ${used}MB.`, notificationTypes.ERROR);
+                    } else if (used > 80) {
+                        notifications.add('High Memory Usage', `Memory usage is elevated: ${used}MB.`, notificationTypes.WARNING);
+                    } else if (used - lastMemoryUsage > 20) {
+                        notifications.add('Memory Spike', `Sudden memory increase: +${used - lastMemoryUsage}MB.`, notificationTypes.WARNING);
+                    }
+                    lastMemoryUsage = used;
+                }
+            }, 30000);
+
+            // Мониторинг FPS с защитой от спама
+            let lastFrame = performance.now();
+            let lowFPSCount = 0;
+            let lowPerformanceNotified = false; // Флаг для отслеживания уведомления
+
+            setInterval(() => {
+                const now = performance.now();
+                const fps = 1000 / (now - lastFrame);
+                if (fps < 30) {
+                    lowFPSCount++;
+                    if (lowFPSCount > 5 && !lowPerformanceNotified) {
+                        notifications.add('Performance Warning', 'Game is running below optimal speed.', notificationTypes.WARNING);
+                        lowPerformanceNotified = true; // Устанавливаем флаг после отправки уведомления
+                    }
+                } else {
+                    lowFPSCount = 0;
+                    // Сбрасываем флаг только если FPS стабильно выше 30 некоторое время
+                    if (lowPerformanceNotified && fps > 50) {
+                        lowFPSCount = 0;
+                        lowPerformanceNotified = false;
+                        notifications.add('Performance Restored', 'Game performance has returned to normal.', notificationTypes.SUCCESS);
+                    }
+                }
+                lastFrame = now;
+            }, 1000);
+
+            // Расширяем обработку событий змейки
+            const oldHandleSnakeDeath = handleSnakeDeath;
+            handleSnakeDeath = (snake) => {
+                oldHandleSnakeDeath(snake);
+                if (snake.isPlayer) {
+                    notifications.add('Snake Death', 'Your snake has died! Control transferred to AI snake.', notificationTypes.ERROR);
+                    notifications.add('Game Statistics', `Final score: ${snake.score}, Length: ${snake.body.length}.`, notificationTypes.INFO);
+                } else {
+                    notifications.add('AI Snake Death', `AI snake level ${snake.aiLevel} has died.`, notificationTypes.WARNING);
+                }
+            };
+
+            // Расширяем обработку столкновений с едой
+            const oldHandleFoodCollision = handleFoodCollision;
+            handleFoodCollision = (head, snakeIndex) => {
+                const oldLength = gameState.snakes[snakeIndex].body.length;
+                const oldScore = gameState.snakes[snakeIndex].score;
+                oldHandleFoodCollision(head, snakeIndex);
+
+                const snake = gameState.snakes[snakeIndex];
+                if (snake.body.length > oldLength) {
+                    // Достижения
+                    if (snake.body.length === SPLIT_LENGTH) {
+                        notifications.add('Achievement', 'Snake reached splitting length!', notificationTypes.SUCCESS);
+                    }
+                    if (snake.score >= 100 && oldScore < 100) {
+                        notifications.add('Achievement', '100 points reached!', notificationTypes.SUCCESS);
+                    }
+                    if (snake.body.length === 10) {
+                        notifications.add('Achievement', 'Snake grew to impressive size!', notificationTypes.SUCCESS);
+                    }
+                }
+            };
+
+            // Мониторинг AI эволюции
+            const oldSplitSnake = splitSnake;
+            splitSnake = (snakeIndex) => {
+                const oldAiLevel = gameState.snakes[snakeIndex].aiLevel;
+                oldSplitSnake(snakeIndex);
+
+                const newSnake = gameState.snakes[gameState.snakes.length - 1];
+                notifications.add(
+                    'AI Evolution',
+                    `New AI snake evolved to level ${newSnake.aiLevel} (from ${oldAiLevel}).`,
+                    notificationTypes.SUCCESS
+                );
+            };
+
+            // Мониторинг состояния игры
+            let lastGameState = gameState.isRunning;
+            let lastSnakeCount = gameState.snakes.length;
+            let consecutivePauses = 0;
+
+            setInterval(() => {
+                // Изменения состояния игры
+                if (lastGameState !== gameState.isRunning) {
+                    lastGameState = gameState.isRunning;
+                    if (!gameState.isRunning) {
+                        consecutivePauses++;
+                        if (consecutivePauses > 3) {
+                            notifications.add('Game Hint', 'Frequent pausing might affect AI learning.', notificationTypes.INFO);
+                        }
+                    }
+                    notifications.add(
+                        'Game State',
+                        gameState.isRunning ? 'Game resumed.' : 'Game paused. ',
+                        notificationTypes.INFO
+                    );
+                }
+
+                // Мониторинг количества змей
+                const currentSnakeCount = gameState.snakes.filter(s => s.isActive).length;
+                if (currentSnakeCount !== lastSnakeCount) {
+                    if (currentSnakeCount === MAX_SNAKES) {
+                        notifications.add('Maximum Snakes', 'Maximum number of snakes reached.', notificationTypes.WARNING);
+                    } else if (currentSnakeCount <= 1) {
+                        notifications.add('Low Population', 'Snake population is critically low.', notificationTypes.WARNING);
+                    }
+                    lastSnakeCount = currentSnakeCount;
+                }
+
+                // Проверка производительности
+                if (gameState.isRunning) {
+                    const snakes = gameState.snakes.filter(s => s.isActive);
+                    if (snakes.length > 5 && lastUsage > 70) {
+                        notifications.add('Performance Warning', 'High CPU usage with multiple snakes.', notificationTypes.WARNING);
+                    }
+                }
+            }, 1000);
+
+            // Добавляем уведомления о достижениях игры
+            setInterval(() => {
+                if (gameState.isRunning) {
+                    if (deaths === 0 && gameState.score > 50) {
+                        notifications.add('Achievement', 'Survived with high score!', notificationTypes.SUCCESS);
+                    }
+                    if (foodEaten > 20) {
+                        notifications.add('Achievement', 'Feeding frenzy! 20+ food items eaten.', notificationTypes.SUCCESS);
+                    }
+                }
+            }, 5000);
+
+            // Дополнительные системные проверки
+            notifications.add('Input System', 'Keyboard controls initialized.', notificationTypes.INFO);
+            notifications.add('Display System', `Canvas size: ${board.clientWidth}x${board.clientHeight}.`, notificationTypes.INFO);
+            notifications.add('AI System', 'Neural network initialized.', notificationTypes.INFO);
+
+            // Проверка поддержки браузера
+            if (!window.requestAnimationFrame) {
+                notifications.add('Browser Support', 'Limited animation support detected.', notificationTypes.WARNING);
+            }
+            if (!window.localStorage) {
+                notifications.add('Storage System', 'Local storage not available.', notificationTypes.WARNING);
+            }
+            if (!navigator.onLine) {
+                notifications.add('Network Status', 'Offline mode active.', notificationTypes.WARNING);
+            }
+
+            // Мониторинг событий браузера
+            window.addEventListener('offline', () => {
+                notifications.add('Network Lost', 'Game running in offline mode.', notificationTypes.WARNING);
+            });
+            window.addEventListener('online', () => {
+                notifications.add('Network Restored', 'Online connection restored.', notificationTypes.SUCCESS);
+            });
+            window.addEventListener('resize', () => {
+                notifications.add('Display Changed', 'Window size changed - adjusting display.', notificationTypes.INFO);
+            });
+            window.addEventListener('blur', () => {
+                notifications.add('Focus Lost', 'Game window lost focus.', notificationTypes.WARNING);
+            });
+
+            // Мониторинг состояния змей
+            let snakeGenerationCounter = 0;
+            const checkSnakePopulation = () => {
+                const totalSnakes = gameState.snakes.length;
+                const activeSnakes = gameState.snakes.filter(s => s.isActive).length;
+                const aiSnakes = gameState.snakes.filter(s => !s.isPlayer && s.isActive).length;
+
+                if (activeSnakes === 0) {
+                    notifications.add('Population Crisis', 'All snakes have died!', notificationTypes.ERROR);
+                }
+
+                // Генерационные достижения
+                if (totalSnakes > snakeGenerationCounter) {
+                    snakeGenerationCounter = totalSnakes;
+                    if (totalSnakes % 5 === 0) {
+                        notifications.add('Evolution Milestone', `Generation ${totalSnakes} reached!`, notificationTypes.SUCCESS);
+                    }
+                }
+
+                // AI статистика
+                if (aiSnakes >= 3) {
+                    const avgAiLevel = Math.round(
+                        gameState.snakes
+                            .filter(s => !s.isPlayer && s.isActive)
+                            .reduce((sum, s) => sum + s.aiLevel, 0) / aiSnakes
+                    );
+                    notifications.add('AI Progress', `Average AI Level: ${avgAiLevel}.`, notificationTypes.INFO);
+                }
+            };
+            setInterval(checkSnakePopulation, 5000);
+
+            // Мониторинг производительности игры
+            const gameMetrics = {
+                lastFrameTime: performance.now(),
+                frameCount: 0,
+                lowPerformanceStreak: 0
+            };
+
+            // Добавляем мониторинг производительности каждую секунду
+            setInterval(() => {
+                const now = performance.now();
+                const fps = gameMetrics.frameCount * 1000 / (now - gameMetrics.lastFrameTime);
+                gameMetrics.frameCount = 0;
+                gameMetrics.lastFrameTime = now;
+
+                if (fps < 30) {
+                    gameMetrics.lowPerformanceStreak++;
+                    if (gameMetrics.lowPerformanceStreak === 3) {
+                        notifications.add('Performance Alert', 'Sustained low performance detected.', notificationTypes.ERROR);
+                    }
+                } else {
+                    gameMetrics.lowPerformanceStreak = 0;
+                }
+
+                // Проверка загрузки CPU
+                if (lastUsage > 90) {
+                    notifications.add('System Stress', 'Critical CPU usage detected.', notificationTypes.ERROR);
+                }
+            }, 1000);
+
+            // Мониторинг игровых событий
+            const gameEvents = {
+                lastFoodSpawn: Date.now(),
+                foodSpawnDelay: 0,
+                collisionCount: 0
+            };
+
+            // Расширяем обработчик столкновений
+            const originalHandleCollision = isCollision;
+            isCollision = (x, y, excludeSnakeIndex) => {
+                const result = originalHandleCollision(x, y, excludeSnakeIndex);
+                if (result) {
+                    gameEvents.collisionCount++;
+                    if (gameEvents.collisionCount % 10 === 0) {
+                        notifications.add('Collision Milestone', `${gameEvents.collisionCount} collisions recorded.`, notificationTypes.WARNING);
+                    }
+                }
+                return result;
+            };
+
+            // Мониторинг еды
+            const originalGenerateFood = generateFood;
+            generateFood = () => {
+                const now = Date.now();
+                gameEvents.foodSpawnDelay = now - gameEvents.lastFoodSpawn;
+                gameEvents.lastFoodSpawn = now;
+
+                const food = originalGenerateFood();
+                if (!food) {
+                    notifications.add('Food Generation', 'Unable to spawn food - board full.', notificationTypes.WARNING);
+                } else if (gameEvents.foodSpawnDelay > 5000) {
+                    notifications.add('Food Scarcity', 'Delayed food generation detected.', notificationTypes.WARNING);
+                }
+                return food;
+            };
+
+            // Достижения и статистика
+            setInterval(() => {
+                if (gameState.isRunning) {
+                    // Проверка длительности игры
+                    const gameTime = Math.floor((Date.now() - gameState.startTime) / 1000);
+                    if (gameTime % 300 === 0) { // Каждые 5 минут
+                        notifications.add('Time Milestone', `Game running for ${gameTime / 60} minutes.`, notificationTypes.SUCCESS);
+                    }
+
+                    // Проверка эффективности игрока
+                    const player = gameState.snakes.find(s => s.isPlayer && s.isActive);
+                    if (player) {
+                        const efficiency = Math.round((player.score / gameTime) * 100) / 100;
+                        if (efficiency > 1) {
+                            notifications.add('High Efficiency', `Score per second: ${efficiency}.`, notificationTypes.SUCCESS);
+                        }
+                    }
+
+                    // Анализ состояния игры
+                    const avgSnakeLength = Math.round(
+                        gameState.snakes
+                            .filter(s => s.isActive)
+                            .reduce((sum, s) => sum + s.body.length, 0) /
+                        gameState.snakes.filter(s => s.isActive).length
+                    );
+
+                    if (avgSnakeLength > 10) {
+                        notifications.add('Population Health', `Average snake length: ${avgSnakeLength}.`, notificationTypes.SUCCESS);
+                    }
+                }
+            }, 10000);
+
+            // Мониторинг ошибок
+            window.onerror = (msg, url, line) => {
+                notifications.add('Runtime Error', `Error at line ${line}: ${msg}.`, notificationTypes.ERROR);
+            };
+
+            // Предупреждения о производительности браузера
+            if (navigator.deviceMemory && navigator.deviceMemory < 2) {
+                notifications.add('Hardware Warning', 'Limited device memory detected.', notificationTypes.WARNING);
+            }
+
+            if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 2) {
+                notifications.add('CPU Warning', 'Limited CPU cores available.', notificationTypes.WARNING);
+            }
+
+            // Проверка разрешения экрана
+            const checkResolution = () => {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                const minRecommendedWidth = 800;
+                const minRecommendedHeight = 600;
+
+                if (width < minRecommendedWidth || height < minRecommendedHeight) {
+                    notifications.add(
+                        'Low Resolution',
+                        `Current resolution (${width}x${height}) is below recommended (${minRecommendedWidth}x${minRecommendedHeight}).`,
+                        notificationTypes.WARNING
+                    );
+                }
+            };
+
+            // Проверяем разрешение при запуске
+            checkResolution();
+
+            // Проверяем разрешение при изменении размера окна
+            window.addEventListener('resize', () => {
+                checkResolution();
+            });
+
+            // Сохраняем оригинальные функции в новые переменные
+            const origIsCollision = isCollision;
+            const origGenerateFood = generateFood;
+            const origHandleSnakeDeath = handleSnakeDeath;
+            const origHandleFoodCollision = handleFoodCollision;
+            const origSplitSnake = splitSnake;
+
+            // Переопределяем функции через глобальный объект window
+            window.isCollision = (x, y, excludeSnakeIndex) => {
+                const result = origIsCollision(x, y, excludeSnakeIndex);
+                if (result) {
+                    gameEvents.collisionCount++;
+                    if (gameEvents.collisionCount % 10 === 0) {
+                        notifications.add('Collision Milestone', `${gameEvents.collisionCount} collisions recorded.`, notificationTypes.WARNING);
+                    }
+                }
+                return result;
+            };
+
+            window.generateFood = () => {
+                const now = Date.now();
+                gameEvents.foodSpawnDelay = now - gameEvents.lastFoodSpawn;
+                gameEvents.lastFoodSpawn = now;
+
+                const food = origGenerateFood();
+                if (!food) {
+                    notifications.add('Food Generation', 'Unable to spawn food - board full.', notificationTypes.WARNING);
+                } else if (gameEvents.foodSpawnDelay > 5000) {
+                    notifications.add('Food Scarcity', 'Delayed food generation detected.', notificationTypes.WARNING);
+                }
+                return food;
+            };
+
+            window.handleSnakeDeath = (snake) => {
+                origHandleSnakeDeath(snake);
+                if (snake.isPlayer) {
+                    notifications.add('Snake Death', 'Your snake has died! Control transferred to AI snake.', notificationTypes.ERROR);
+                    notifications.add('Game Statistics', `Final score: ${snake.score}, Length: ${snake.body.length}`, notificationTypes.INFO);
+                } else {
+                    notifications.add('AI Snake Death', `AI snake level ${snake.aiLevel} has died.`, notificationTypes.WARNING);
+                }
+            };
+
+            window.handleFoodCollision = (head, snakeIndex) => {
+                const oldLength = gameState.snakes[snakeIndex].body.length;
+                const oldScore = gameState.snakes[snakeIndex].score;
+                origHandleFoodCollision(head, snakeIndex);
+
+                const snake = gameState.snakes[snakeIndex];
+                if (snake.body.length > oldLength) {
+                    if (snake.body.length === SPLIT_LENGTH) {
+                        notifications.add('Achievement', 'Snake reached splitting length!', notificationTypes.SUCCESS);
+                    }
+                    if (snake.score >= 100 && oldScore < 100) {
+                        notifications.add('Achievement', '100 points reached!', notificationTypes.SUCCESS);
+                    }
+                    if (snake.body.length === 10) {
+                        notifications.add('Achievement', 'Snake grew to impressive size!', notificationTypes.SUCCESS);
+                    }
+                }
+            };
+
+            window.splitSnake = (snakeIndex) => {
+                const oldAiLevel = gameState.snakes[snakeIndex].aiLevel;
+                origSplitSnake(snakeIndex);
+
+                const newSnake = gameState.snakes[gameState.snakes.length - 1];
+                notifications.add(
+                    'AI Evolution',
+                    `New AI snake evolved to level ${newSnake.aiLevel} (from ${oldAiLevel}).`,
+                    notificationTypes.SUCCESS
+                );
+            };
+
+            // Обновляем ссылки на функции в глобальной области видимости
+            isCollision = window.isCollision;
+            generateFood = window.generateFood;
+            handleSnakeDeath = window.handleSnakeDeath;
+            handleFoodCollision = window.handleFoodCollision;
+            splitSnake = window.splitSnake;
+        };
+
+        // Initialize notifications after game starts
+        window.addEventListener('load', addGameNotifications);
+
+        // Add Statistics Panel Logic
+        const statsContainer = document.querySelector('.statistics-container');
+        const statsButton = document.querySelector('.activity-icon[title="Statistics"]');
+
+        // Stats Panel Toggle
+        statsButton.addEventListener('click', () => {
+            const isVisible = statsContainer.style.display === 'block';
+            statsContainer.style.display = isVisible ? 'none' : 'block';
+            statsButton.classList.toggle('active');
+            if (!isVisible) {
+                initializeCharts();
+                updateSystemInfo();
+                forceUpdateCharts(); // Force immediate update when panel is opened
+            }
+        });
+
+        // Initialize time series data
+        const timeSeriesData = {
+            aiLevels: Array(20).fill(null),
+            foodRate: Array(20).fill(0),
+            scoreRate: Array(20).fill(0),
+            deathRate: Array(20).fill(0),
+            timestamps: Array(20).fill(new Date()),
+            cpuUsage: Array(20).fill(0),
+            memoryUsage: Array(20).fill(0)
+        };
+
+        // Chart objects
+        let charts = {
+            aiEvolution: null,
+            foodRate: null,
+            scoreRate: null,
+            deathRate: null,
+            cpuUsage: null,
+            memoryUsage: null
+        };
+
+        function initializeCharts() {
+            // Общие настройки темы Highcharts в стиле VS Code Light Modern
+            Highcharts.setOptions({
+                colors: [
+                    getComputedStyle(document.documentElement).getPropertyValue('--color-info'),
+                    getComputedStyle(document.documentElement).getPropertyValue('--color-success'),
+                    getComputedStyle(document.documentElement).getPropertyValue('--color-warning'),
+                    getComputedStyle(document.documentElement).getPropertyValue('--color-error'),
+                    getComputedStyle(document.documentElement).getPropertyValue('--color-purple'),
+                    getComputedStyle(document.documentElement).getPropertyValue('--color-teal')
+                ],
+                chart: {
+                backgroundColor: 'var(--bg-primary)',
+                    style: {
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                        fontSize: 'var(--spacing-md)'
+                    }
+                },
+                title: {
+                    style: {
+                        fontSize: 'var(--font-size-lg)',
+                        fontWeight: '600',
+                        color: '#333333'
+                    }
+                },
+                xAxis: {
+                    type: 'datetime',
+                    tickInterval: 5000, // Интервал в 1 секунду
+                    minTickInterval: 5000,
+                    labels: {
+                        format: '{value:%S}',
+                        style: {
+                            color: 'var(--text-secondary)',
+                            fontSize: '11px'
+                        }
+                    }
+                },
+                yAxis: {
+                    lineColor: 'var(--border-color)',
+                    tickColor: 'var(--border-color)',
+                    labels: {
+                        style: {
+                            color: 'var(--text-secondary)',
+                            fontSize: '11px'
+                        }
+                    }
+                },
+                plotOptions: {
+                    series: {
+                        states: {
+                            hover: {
+                                brightness: -0.1
+                            }
+                        }
+                    },
+                    area: {
+                        fillOpacity: 0.2
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)',
+                    borderRadius: 0, // Убираем скругление у тултипов
+                    borderWidth: 1,
+                    shadow: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        offsetX: 0,
+                        offsetY: 2,
+                        opacity: 1,
+                        width: 4
+                    },
+                    style: {
+                        color: '#333333',
+                        fontSize: 'var(--spacing-md)',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                    }
+                }
+            });
+
+            const commonOptions = {
+                time: { useUTC: false },
+                credits: { enabled: false },
+                legend: { enabled: false },
+                yAxis: {
+                    min: 0, // Добавляем глобальную настройку минимального значения
+                    startOnTick: true,
+                    endOnTick: false
+                }
+            };
+
+            // AI Evolution Chart - синий
+            charts.aiEvolution = Highcharts.chart('ai-evolution-chart', Highcharts.merge(commonOptions, {
+                chart: { type: 'spline' },
+                title: { text: 'AI Evolution Over Time' },
+                series: [{
+                    name: 'AI Level',
+                    color: '#2196F3', // Синий
+                    data: [],
+                    marker: {
+                        enabled: true,
+                        radius: 4
+                    },
+                    lineWidth: 2
+                }],
+                yAxis: {
+                    min: 0,
+                    max: 3,
+                    tickAmount: 4,
+                    title: { text: null }
+                }
+            }));
+
+            // Score Chart - зеленый
+            charts.scoreChart = Highcharts.chart('score-chart', Highcharts.merge(commonOptions, {
+                chart: { type: 'area' },
+                title: { text: 'Score Progression' },
+                series: [{
+                    name: 'Score',
+                    color: '#4CAF50', // Зеленый
+                    data: [],
+                    marker: { radius: 3 },
+                    lineWidth: 2
+                }],
+                yAxis: {
+                    min: 0,
+                    title: { text: null },
+                    allowDecimals: false
+                }
+            }));
+
+            // Death Rate Chart - красный
+            charts.deathRate = Highcharts.chart('death-rate-chart', Highcharts.merge(commonOptions, {
+                chart: { type: 'column' },
+                title: { text: 'Death Rate Analysis' },
+                series: [{
+                    name: 'Deaths',
+                    color: '#F44336', // Красный
+                    data: [],
+                    borderRadius: 0 // Убираем скругление у колонок
+                }],
+                yAxis: {
+                    min: 0,
+                    allowDecimals: false,
+                    title: { text: null },
+                    floor: 0
+                }
+            }));
+
+            // Food Rate Chart - оранжевый
+            charts.foodRate = Highcharts.chart('food-rate-chart', Highcharts.merge(commonOptions, {
+                chart: { type: 'spline' },
+                title: { text: 'Food Consumption Rate' },
+                series: [{
+                    name: 'Food/Minute',
+                    color: '#FF9800', // Оранжевый
+                    data: [],
+                    marker: {
+                        enabled: true,
+                        radius: 4
+                    },
+                    lineWidth: 2
+                }],
+                yAxis: {
+                    min: 0,
+                    title: { text: null },
+                    floor: 0
+                }
+            }));
+
+            // CPU Usage Chart - фиолетовый
+            charts.cpuUsage = Highcharts.chart('cpu-usage-chart', Highcharts.merge(commonOptions, {
+                chart: { type: 'area', height: 140 },
+                title: { text: 'CPU Usage' },
+                series: [{
+                    name: 'CPU',
+                    color: '#9C27B0', // Фиолетовый
+                    fillOpacity: 0.2,
+                    data: []
+                }],
+                yAxis: {
+                    min: 0,
+                    max: 100,
+                    labels: {
+                        format: '{value}%'
+                    },
+                    title: { text: null },
+                    floor: 0
+                }
+            }));
+
+            // Memory Usage Chart - бирюзовый
+            charts.memoryUsage = Highcharts.chart('memory-usage-chart', Highcharts.merge(commonOptions, {
+                chart: { type: 'area', height: 140 },
+                title: { text: 'Memory Usage' },
+                series: [{
+                    name: 'Memory',
+                    color: '#009688', // Бирюзовый
+                    fillOpacity: 0.2,
+                    data: []
+                }],
+                yAxis: {
+                    min: 0,
+                    labels: {
+                        format: '{value}MB'
+                    },
+                    title: { text: null },
+                    floor: 0
+                }
+            }));
+        }
+
+        // Обновляем forceUpdateCharts для работы с новыми графиками
+        function forceUpdateCharts() {
+            if (charts.aiEvolution && statsContainer.style.display === 'block') {
+                const now = new Date();
+                const newData = {
+                    aiLevels: [],
+                    score: [],
+                    deathRate: [],
+                    foodRate: [],
+                    cpuUsage: [],
+                    memoryUsage: []
+                };
+
+                timeSeriesData.timestamps.forEach((_, index) => {
+                    const timestamp = now.getTime() - (20 - 1 - index) * 5000;
+                    newData.aiLevels.push([timestamp, timeSeriesData.aiLevels[index] || 0]);
+                    newData.score.push([timestamp, gameState.score]);
+                    newData.deathRate.push([timestamp, timeSeriesData.deathRate[index] || 0]);
+                    newData.foodRate.push([timestamp, timeSeriesData.foodRate[index] || 0]);
+                    newData.cpuUsage.push([timestamp, timeSeriesData.cpuUsage[index] || 0]);
+                    newData.memoryUsage.push([timestamp, timeSeriesData.memoryUsage[index] || 0]);
+                });
+
+                // Update all charts with new data
+                charts.aiEvolution.series[0].setData(newData.aiLevels, true);
+                charts.scoreChart.series[0].setData(newData.score, true);
+                charts.deathRate.series[0].setData(newData.deathRate, true);
+                charts.foodRate.series[0].setData(newData.foodRate, true);
+                charts.cpuUsage.series[0].setData(newData.cpuUsage, true);
+                charts.memoryUsage.series[0].setData(newData.memoryUsage, true);
+            }
+        }
+
+        // Update system information
+        const gameStartTime = Date.now();
+
+        function updateSystemInfo() {
+            const table = document.getElementById('system-info-table');
+            const playTimeInSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+            const hours = Math.floor(playTimeInSeconds / 3600);
+            const minutes = Math.floor((playTimeInSeconds % 3600) / 60);
+            const seconds = playTimeInSeconds % 60;
+            const playTimeFormatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            const info = {
+                'Game Board Size': `${BOARD_SIZE}x${BOARD_SIZE}`,
+                'Game Version': 'v0.4.2-dev',
+                'Total Score': gameState.score,
+                'Total Snakes': gameState.snakes.length,
+                'Total Foods': gameState.foodItems.length,
+                'Play Time': playTimeFormatted,
+                'Window Size': `${window.innerWidth}x${window.innerHeight}`
+            };
+
+            table.innerHTML = Object.entries(info)
+                .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
+                .join('');
+        }
+
+        // Update resource monitors
+        let lastCPUUsage = 0;
+        function updateResourceMonitors() {
+            // Simulate CPU usage (in real app would use performance.now())
+            const cpuUsage = Math.min(100, lastCPUUsage + (Math.random() * 20 - 10));
+            lastCPUUsage = cpuUsage;
+
+            document.getElementById('cpu-progress').style.width = `${cpuUsage}%`;
+            document.getElementById('cpu-value').textContent = `${Math.round(cpuUsage)}%`;
+
+            // Memory usage (if available)
+            if (performance.memory) {
+                const memoryUsage = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit * 100;
+                const memoryMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+
+                document.getElementById('memory-progress').style.width = `${memoryUsage}%`;
+                document.getElementById('memory-value').textContent = `${memoryMB}MB`;
+            }
+        }
+
+        // Update time series data
+        function updateTimeSeriesData() {
+            const now = new Date();
+            const activeSnakes = gameState.snakes.filter(s => s.isActive);
+
+            // Calculate metrics
+            const avgAiLevel = activeSnakes.reduce((sum, s) => sum + s.aiLevel, 0) / activeSnakes.length || 0;
+            const foodPerMin = (foodEaten / ((now - gameState.startTime) / 60000)) || 0;
+            const scorePerMin = (gameState.score / ((now - gameState.startTime) / 60000)) || 0;
+            const deathsPerMin = (deaths / ((now - gameState.startTime) / 60000)) || 0;
+            const memoryMB = performance.memory ?
+                Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 0;
+
+            // Update data arrays
+            timeSeriesData.aiLevels = [...timeSeriesData.aiLevels.slice(1), avgAiLevel];
+            timeSeriesData.foodRate = [...timeSeriesData.foodRate.slice(1), foodPerMin];
+            timeSeriesData.scoreRate = [...timeSeriesData.scoreRate.slice(1), scorePerMin];
+            timeSeriesData.deathRate = [...timeSeriesData.deathRate.slice(1), deathsPerMin];
+            timeSeriesData.cpuUsage = [...timeSeriesData.cpuUsage.slice(1), lastCPUUsage];
+            timeSeriesData.memoryUsage = [...timeSeriesData.memoryUsage.slice(1), memoryMB];
+        }
+
+        // Add update interval for stats
+        setInterval(() => {
+            if (statsContainer.style.display === 'block') {
+                updateResourceMonitors();
+                updateTimeSeriesData();
+                updateSystemInfo();
+                forceUpdateCharts(); // Add chart update here
+            }
+        }, 1000);
+
+        // Add performance monitoring
+        let lastPerformanceUpdate = performance.now();
+        const performanceHistory = [];
+
+        function trackPerformance() {
+            const now = performance.now();
+            const delta = now - lastPerformanceUpdate;
+
+            performanceHistory.push({
+                timestamp: now,
+                fps: 1000 / delta,
+                activeSnakes: gameState.snakes.filter(s => s.isActive).length,
+                memoryUsage: performance.memory ? performance.memory.usedJSHeapSize : 0
+            });
+
+            // Keep only last 60 seconds of data
+            while (performanceHistory.length > 60) {
+                performanceHistory.shift();
+            }
+
+            lastPerformanceUpdate = now;
+            requestAnimationFrame(trackPerformance);
+        }
+
+        // Start performance tracking
+        trackPerformance();
+
+        // Add detailed system info updates
+        function updateDetailedSystemInfo() {
+            const avgFps = performanceHistory.reduce((sum, p) => sum + p.fps, 0) / performanceHistory.length;
+            const peakMemory = Math.max(...performanceHistory.map(p => p.memoryUsage));
+
+            const detailedInfo = {
+                'AI Evolution Rate': `${(timeSeriesData.aiLevels.filter(x => x !== null).length / 20 * 100).toFixed(1)}%`,
+                'Average FPS': avgFps.toFixed(1),
+                'Board Utilization': `${(gameState.snakes.reduce((sum, s) => sum + s.body.length, 0) / (BOARD_SIZE * BOARD_SIZE) * 100).toFixed(1)}%`,
+                'Game Mode': gameState.isRunning ? 'Running' : 'Stopped',
+                'Peak Memory Usage': `${(peakMemory / (1024 * 1024)).toFixed(2)} MB`
+            };
+
+            const table = document.getElementById('system-info-table');
+            table.innerHTML = Object.entries(detailedInfo)
+                .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
+                .join('') + table.innerHTML;
+        }
+
+        // Update system info with performance metrics
+        setInterval(updateDetailedSystemInfo, 1000);
+
+        // Add forced chart update interval (5 seconds)
+        setInterval(forceUpdateCharts, 5000);
+
+        // Add Network Status functionality
+        const networkWindow = document.querySelector('.network-status-panel');
+        const remoteIndicator = document.querySelector('.remote-indicator');
+
+        let lastTimestamp = performance.now();
+        let lastReceived = 0;
+        let lastSent = 0;
+
+        // Toggle network window
+        remoteIndicator.addEventListener('click', () => {
+            networkWindow.style.display = networkWindow.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Close network window when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!networkWindow.contains(e.target) && !remoteIndicator.contains(e.target)) {
+                networkWindow.style.display = 'none';
+            }
+        });
+
+        // Update network stats
+        async function updateNetworkStats() {
+            // Update connection status
+            const isOnline = navigator.onLine;
+            const statusIcon = networkWindow.querySelector('.network-status-item .value i');
+            const statusText = statusIcon.nextSibling;
+            statusIcon.style.color = isOnline ? '#388e3c' : '#d32f2f';
+            statusText.textContent = isOnline ? ' Online' : ' Offline';
+
+            try {
+                // Get connection speed
+                if ('connection' in navigator) {
+                    const connection = navigator.connection;
+                    const speedValue = networkWindow.querySelector('.network-status-item:nth-child(2) .value');
+                    speedValue.textContent = connection.downlink ? `${connection.downlink} Mbps` : '--';
+                }
+
+                // Get IPv4 address
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                const ipValue = networkWindow.querySelector('.network-status-item:nth-child(3) .value');
+                ipValue.textContent = data.ip;
+
+                // Calculate network usage
+                if ('performance' in window) {
+                    const now = performance.now();
+                    const performanceEntries = performance.getEntriesByType('resource');
+
+                    let totalReceived = 0;
+                    let totalSent = 0;
+
+                    performanceEntries.forEach(entry => {
+                        if (entry.startTime > lastTimestamp) {
+                            totalReceived += entry.transferSize || 0;
+                            totalSent += entry.encodedBodySize || 0;
+                        }
+                    });
+
+                    const timeElapsed = (now - lastTimestamp) / 1000; // Convert to seconds
+                    const receivedKbps = Math.round((totalReceived - lastReceived) * 8 / 1024 / timeElapsed);
+                    const sentKbps = Math.round((totalSent - lastSent) * 8 / 1024 / timeElapsed);
+
+                    const receiveValue = networkWindow.querySelector('.network-status-item:nth-child(4) .value');
+                    const sendValue = networkWindow.querySelector('.network-status-item:nth-child(5) .value');
+
+                    receiveValue.textContent = `${receivedKbps} Kbps`;
+                    sendValue.textContent = `${sentKbps} Kbps`;
+
+                    lastReceived = totalReceived;
+                    lastSent = totalSent;
+                    lastTimestamp = now;
+                }
+            } catch (error) {
+                notifications.add('Network Error', 'Failed to update network stats: ' + error.message, notificationTypes.ERROR);
+            }
+        }
+
+        // Update network stats every second when window is visible
+        setInterval(() => {
+            if (networkWindow.style.display === 'block') {
+                updateNetworkStats();
+            }
+        }, 1000);
+
+        // Initial update
+        updateNetworkStats();
+
+        // Add Settings Management
+        const defaultSettings = {
+            boardSize: 20,
+            initialSpeed: 200,
+            splitLength: 6,
+            maxSnakes: 10,
+            foodSpawnInterval: 10,
+            decayInterval: 15,
+            speedFactor: 10,
+            goldenRatio: 0.618033988749895,
+            initialLength: 1,
+            initialX: 10,
+            initialY: 10,
+            foodX: 5,
+            foodY: 5
+        };
+
+        defaultSettings.controls = {
+            up: 'ArrowUp',
+            down: 'ArrowDown',
+            left: 'ArrowLeft',
+            right: 'ArrowRight',
+            reload: 'r',
+            speedup: '+',
+            slowdown: '-',
+            notifications: 'n',
+            savecode: 's',
+            settings: ','
+        };
+
+        defaultSettings.achievements = {
+            enabled: true,
+            speedMaster: true,
+            snakeCharmer: true,
+            foodChampion: true,
+            aiMaster: true
+        };
+
+        defaultSettings.scoring = {
+            trackScores: true,
+            multiplier: 1,
+            bonusPoints: true,
+            historySize: 10
+        };
+
+        let currentSettings = { ...defaultSettings };
+
+        // Settings panel management
+        const settingsPanel = document.querySelector('.settings-panel');
+        const settingsButton = document.querySelector('.activity-icon[title="Settings"]');
+
+        settingsButton.addEventListener('click', () => {
+            settingsPanel.style.display = settingsPanel.style.display === 'flex' ? 'none' : 'flex';
+            settingsButton.classList.toggle('active');
+            loadCurrentSettings();
+        });
+
+        // Удалим некорректный обработчик
+        // settingsPanel.querySelector('.notifications-action').addEventListener('click', () => {
+        //     settingsPanel.style.display = 'none';
+        //     settingsButton.classList.remove('active');
+        // });
+
+        // Добавим закрытие по клику вне панели
+        document.addEventListener('click', (e) => {
+            if (!settingsPanel.contains(e.target) &&
+                !settingsButton.contains(e.target) &&
+                settingsPanel.style.display === 'flex') {
+                settingsPanel.style.display = 'none';
+                settingsButton.classList.remove('active');
+            }
+        });
+
+        function loadCurrentSettings() {
+            document.getElementById('setting-board-size').value = currentSettings.boardSize;
+            document.getElementById('setting-initial-speed').value = currentSettings.initialSpeed;
+            document.getElementById('setting-split-length').value = currentSettings.splitLength;
+            document.getElementById('setting-max-snakes').value = currentSettings.maxSnakes;
+            document.getElementById('setting-food-spawn').value = currentSettings.foodSpawnInterval;
+            document.getElementById('setting-decay').value = currentSettings.decayInterval;
+            document.getElementById('setting-speed-factor').value = currentSettings.speedFactor;
+            document.getElementById('setting-golden-ratio').value = currentSettings.goldenRatio;
+            document.getElementById('setting-initial-length').value = currentSettings.initialLength;
+            document.getElementById('setting-initial-x').value = currentSettings.initialX;
+            document.getElementById('setting-initial-y').value = currentSettings.initialY;
+            document.getElementById('setting-food-x').value = currentSettings.foodX;
+            document.getElementById('setting-food-y').value = currentSettings.foodY;
+
+            // Load control settings
+            document.getElementById('setting-key-up').value = currentSettings.controls.up;
+            document.getElementById('setting-key-down').value = currentSettings.controls.down;
+            document.getElementById('setting-key-left').value = currentSettings.controls.left;
+            document.getElementById('setting-key-right').value = currentSettings.controls.right;
+            document.getElementById('setting-key-reload').value = currentSettings.controls.reload;
+            document.getElementById('setting-key-speedup').value = currentSettings.controls.speedup;
+            document.getElementById('setting-key-slowdown').value = currentSettings.controls.slowdown;
+            document.getElementById('setting-key-notifications').value = currentSettings.controls.notifications;
+            document.getElementById('setting-key-savecode').value = currentSettings.controls.savecode;
+            document.getElementById('setting-key-settings').value = currentSettings.controls.settings;
+
+            // Load achievement settings
+            document.getElementById('setting-enable-achievements').checked = currentSettings.achievements.enabled;
+            document.getElementById('setting-achieve-speed').checked = currentSettings.achievements.speedMaster;
+            document.getElementById('setting-achieve-length').checked = currentSettings.achievements.snakeCharmer;
+            document.getElementById('setting-achieve-food').checked = currentSettings.achievements.foodChampion;
+            document.getElementById('setting-achieve-ai').checked = currentSettings.achievements.aiMaster;
+
+            // Load score tracking settings
+            document.getElementById('setting-track-scores').checked = currentSettings.scoring.trackScores;
+            document.getElementById('setting-score-multiplier').value = currentSettings.scoring.multiplier;
+            document.getElementById('setting-bonus-points').checked = currentSettings.scoring.bonusPoints;
+            document.getElementById('setting-history-size').value = currentSettings.scoring.historySize;
+        }
+
+        let gameControls = { ...defaultSettings.controls };
+
+        function setupControlBindings() {
+            const controlInputs = [
+                'up', 'down', 'left', 'right',
+                'reload', 'speedup', 'slowdown',
+                'notifications', 'savecode', 'settings'
+            ].map(dir => ({
+                input: document.getElementById(`setting-key-${dir}`),
+                direction: dir
+            }));
+
+            controlInputs.forEach(({input, direction}) => {
+                input.addEventListener('focus', function() {
+                    this.value = 'Press any key...';
+                    this.classList.add('binding');
+                });
+
+                input.addEventListener('keydown', function(e) {
+                    e.preventDefault();
+                    if (e.key === 'Escape') {
+                        this.value = currentSettings.controls[direction];
+                        this.classList.remove('binding');
+                        this.blur();
+                        return;
+                    }
+
+                    if (e.key === 'Tab') return;
+
+                    this.value = e.key;
+                    currentSettings.controls[direction] = e.key;
+                    gameControls[direction] = e.key;
+                    this.classList.remove('binding');
+                    this.blur();
+                });
+
+                input.addEventListener('blur', function() {
+                    if (this.classList.contains('binding')) {
+                        this.value = currentSettings.controls[direction];
+                        this.classList.remove('binding');
+                    }
+                });
+            });
+        }
+
+        window.resetSettings = function() {
+            currentSettings = { ...defaultSettings };
+            loadCurrentSettings();
+
+            // Store old board size
+            const oldBoardSize = BOARD_SIZE;
+
+            // Reset all game constants
+            BOARD_SIZE = defaultSettings.boardSize;
+            INITIAL_SPEED = defaultSettings.initialSpeed;
+            SPLIT_LENGTH = defaultSettings.splitLength;
+            MAX_SNAKES = defaultSettings.maxSnakes;
+            FOOD_SPAWN_INTERVAL = defaultSettings.foodSpawnInterval;
+            DECAY_INTERVAL = defaultSettings.decayInterval;
+            SPEED_FACTOR = defaultSettings.speedFactor;
+
+            // Rebuild board if size changed
+            if (oldBoardSize !== BOARD_SIZE) {
+                rebuildGameBoard();
+            }
+
+            updateGameParameters();
+            notifications.add('Settings Reset', 'All settings have been reset to defaults.', notificationTypes.INFO);
+        };
+
+        window.saveSettings = function() {
+            const newSettings = {
+                boardSize: parseInt(document.getElementById('setting-board-size').value),
+                initialSpeed: parseInt(document.getElementById('setting-initial-speed').value),
+                splitLength: parseInt(document.getElementById('setting-split-length').value),
+                maxSnakes: parseInt(document.getElementById('setting-max-snakes').value),
+                foodSpawnInterval: parseInt(document.getElementById('setting-food-spawn').value),
+                decayInterval: parseInt(document.getElementById('setting-decay').value),
+                speedFactor: parseInt(document.getElementById('setting-speed-factor').value),
+                goldenRatio: parseFloat(document.getElementById('setting-golden-ratio').value),
+                initialLength: parseInt(document.getElementById('setting-initial-length').value),
+                initialX: parseInt(document.getElementById('setting-initial-x').value),
+                initialY: parseInt(document.getElementById('setting-initial-y').value),
+                foodX: parseInt(document.getElementById('setting-food-x').value),
+                foodY: parseInt(document.getElementById('setting-food-y').value)
+            };
+
+            // Validate settings
+            if (Object.values(newSettings).some(value => isNaN(value))) {
+                notifications.add('Settings Error', 'Invalid settings values detected.', notificationTypes.ERROR);
+                return;
+            }
+
+            // Validate ranges
+            if (newSettings.boardSize < 10 || newSettings.boardSize > 50 ||
+                newSettings.initialSpeed < 50 || newSettings.initialSpeed > 500 ||
+                newSettings.splitLength < 4 || newSettings.splitLength > 20 ||
+                newSettings.maxSnakes < 1 || newSettings.maxSnakes > 20 ||
+                newSettings.foodSpawnInterval < 5 || newSettings.foodSpawnInterval > 30 ||
+                newSettings.decayInterval < 5 || newSettings.decayInterval > 50 ||
+                newSettings.speedFactor < 1 || newSettings.speedFactor > 20 ||
+                newSettings.goldenRatio < 0 || newSettings.goldenRatio > 1 ||
+                newSettings.initialLength < 1 || newSettings.initialLength > 5 ||
+                newSettings.initialX < 0 || newSettings.initialX >= BOARD_SIZE ||
+                newSettings.initialY < 0 || newSettings.initialY >= BOARD_SIZE ||
+                newSettings.foodX < 0 || newSettings.foodX >= BOARD_SIZE ||
+                newSettings.foodY < 0 || newSettings.foodY >= BOARD_SIZE) {
+                notifications.add('Settings Error', 'Settings values are out of allowed ranges.', notificationTypes.ERROR);
+                return;
+            }
+
+            // Store old board size for comparison
+            const oldBoardSize = BOARD_SIZE;
+
+            // Update global constants
+            BOARD_SIZE = newSettings.boardSize;
+            INITIAL_SPEED = newSettings.initialSpeed;
+            SPLIT_LENGTH = newSettings.splitLength;
+            MAX_SNAKES = newSettings.maxSnakes;
+            FOOD_SPAWN_INTERVAL = newSettings.foodSpawnInterval;
+            DECAY_INTERVAL = newSettings.decayInterval;
+            SPEED_FACTOR = newSettings.speedFactor;
+            GOLDEN_RATIO = newSettings.goldenRatio;
+            INITIAL_SNAKE_LENGTH = newSettings.initialLength;
+
+            // Save current settings
+            currentSettings = { ...newSettings };
+
+            // Check if board size changed
+            if (oldBoardSize !== BOARD_SIZE) {
+                rebuildGameBoard();
+            }
+
+            // Update snake speeds and other dynamic properties
+            updateGameParameters();
+
+            // Save control settings
+            currentSettings.controls = { ...gameControls };
+
+            // Save score tracking settings
+            currentSettings.scoring = {
+                trackScores: document.getElementById('setting-track-scores').checked,
+                multiplier: parseInt(document.getElementById('setting-score-multiplier').value),
+                bonusPoints: document.getElementById('setting-bonus-points').checked,
+                historySize: parseInt(document.getElementById('setting-history-size').value)
+            };
+
+            // Validate score tracking settings
+            if (currentSettings.scoring.multiplier < 1 || currentSettings.scoring.multiplier > 10 ||
+                currentSettings.scoring.historySize < 5 || currentSettings.scoring.historySize > 50) {
+                notifications.add('Settings Error', 'Invalid score tracking values.', notificationTypes.ERROR);
+                return;
+            }
+
+            // Save achievement settings
+            currentSettings.achievements = {
+                enabled: document.getElementById('setting-enable-achievements').checked,
+                speedMaster: document.getElementById('setting-achieve-speed').checked,
+                snakeCharmer: document.getElementById('setting-achieve-length').checked,
+                foodChampion: document.getElementById('setting-achieve-food').checked,
+                aiMaster: document.getElementById('setting-achieve-ai').checked
+            };
+
+            // Update game scoring
+            updateScoringSystem();
+
+            notifications.add('Settings Saved', 'Game settings have been updated successfully.', notificationTypes.SUCCESS);
+            settingsPanel.style.display = 'none';
+            settingsButton.classList.remove('active');
+        };
+
+        function rebuildGameBoard() {
+            // Clear existing board
+            board.innerHTML = '';
+            board.style.gridTemplate = `repeat(${BOARD_SIZE}, 1fr) / repeat(${BOARD_SIZE}, 1fr)`;
+
+            // Recreate cells
+            cells.length = 0; // Clear cells array
+            for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                board.appendChild(cell);
+                cells.push(cell);
+            }
+
+            // Reset game if it was running
+            if (gameState.isRunning) {
+                gameState.isRunning = false;
+                setTimeout(() => {
+                    resetGame();
+                    gameState.isRunning = true;
+                    gameLoop();
+                }, 100);
+            } else {
+                resetGame();
+            }
+        }
+
+        function updateGameParameters() {
+            // Update all snakes' speeds
+            gameState.snakes.forEach(snake => {
+                snake.lastMoveTime = performance.now(); // Reset move timers
+            });
+
+            // Trim excess snakes if max count decreased
+            if (gameState.snakes.length > MAX_SNAKES) {
+                const extraSnakes = gameState.snakes.length - MAX_SNAKES;
+                gameState.snakes.splice(MAX_SNAKES, extraSnakes);
+                notifications.add('Snakes Removed', `Removed ${extraSnakes} snake(s) due to new maximum limit.`, notificationTypes.WARNING);
+            }
+
+            // Reset move counter for food spawning
+            moveCount = 0;
+
+            // Update all active snake parameters
+            gameState.snakes.forEach(snake => {
+                if (snake.body.length >= SPLIT_LENGTH) {
+                    splitSnake(gameState.snakes.indexOf(snake));
+                }
+            });
+
+            // Force board update
+            updateBoard();
+        }
+
+        function updateScoringSystem() {
+            if (currentSettings.scoring.trackScores) {
+                const highScores = JSON.parse(localStorage.getItem('snakeHighScores') || '[]');
+                if (highScores.length > currentSettings.scoring.historySize) {
+                    highScores.length = currentSettings.scoring.historySize;
+                    localStorage.setItem('snakeHighScores', JSON.stringify(highScores));
+                }
+            }
+        }
+
+        function updateHighScores(score) {
+            const highScores = JSON.parse(localStorage.getItem('snakeHighScores') || '[]');
+            highScores.push({
+                score: score,
+                date: new Date().toISOString(),
+                multiplier: currentSettings.scoring.multiplier
+            });
+            highScores.sort((a, b) => b.score - a.score);
+            if (highScores.length > currentSettings.scoring.historySize) {
+                highScores.length = currentSettings.scoring.historySize;
+            }
+            localStorage.setItem('snakeHighScores', JSON.stringify(highScores));
+        }
+
+        function checkAchievements(snake) {
+            if (!currentSettings.achievements.enabled) return;
+
+            if (currentSettings.achievements.speedMaster && snake.body.length * SPEED_FACTOR >= 100) {
+                notifications.add('Achievement Unlocked', 'Speed Master - Reached maximum speed!', notificationTypes.SUCCESS);
+                currentSettings.achievements.speedMaster = false;
+            }
+
+            if (currentSettings.achievements.snakeCharmer && snake.body.length >= 20) {
+                notifications.add('Achievement Unlocked', 'Snake Charmer - Grew to impressive length!', notificationTypes.SUCCESS);
+                currentSettings.achievements.snakeCharmer = false;
+            }
+
+            if (currentSettings.achievements.foodChampion && foodEaten >= 50) {
+                notifications.add('Achievement Unlocked', 'Food Champion - Collected 50 food items!', notificationTypes.SUCCESS);
+                currentSettings.achievements.foodChampion = false;
+            }
+
+            if (currentSettings.achievements.aiMaster &&
+                gameState.snakes.filter(s => s.aiLevel === AI_EVOLUTION_STAGES.ASTAR).length >= 3) {
+                notifications.add('Achievement Unlocked', 'AI Master - Evolved 3 snakes to maximum AI level!', notificationTypes.SUCCESS);
+                currentSettings.achievements.aiMaster = false;
+            }
+        }
+
+        // Initialize settings on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCurrentSettings();
+            setupControlBindings();
+        });
+
+        // Add chatbot functionality
+        const chatContainer = document.querySelector('.chat-panel');
+        const chatButton = document.querySelector('.activity-icon[title="Chat Support"]');
+        const chatMessages = document.querySelector('.chat-messages');
+        const chatInput = document.querySelector('.chat-input');
+        const sendButton = document.querySelector('.send-button');
+        const typingIndicator = document.querySelector('.typing-indicator');
+
+        // Chat toggle
+        chatButton.addEventListener('click', () => {
+            const isVisible = chatContainer.style.display === 'flex';
+            chatContainer.style.display = isVisible ? 'none' : 'flex';
+            chatButton.classList.toggle('active');
+            if (!isVisible) {
+                chatInput.focus();
+            }
+        });
+
+        let isBotResponding = false;
+
+        async function sendMessage(text) {
+            if (!text.trim() || isBotResponding) return;
+
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.textContent = text;
+            chatMessages.appendChild(userMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Clear input and disable controls
+            chatInput.value = '';
+            isBotResponding = true;
+            sendButton.disabled = true;
+            typingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'sk-ijklmnopabcd5678ijklmnopabcd5678ijklmnop' // Замените на ваш API ключ
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [{
+                            role: "system",
+                            content: "You are a helpful assistant for the GenSnake game. The game is an advanced version of the classic Snake game with AI evolution, multiple snakes, and various gameplay mechanics. Provide concise, accurate responses about game mechanics, features, and strategies."
+                        }, {
+                            role: "user",
+                            content: text
+                        }],
+                        max_tokens: 150,
+                        temperature: 0.7
+                    })
+                });
+
+                const data = await response.json();
+                const botResponse = data.choices[0].message.content;
+
+                // Add bot message
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot';
+                botMessage.textContent = botResponse;
+                chatMessages.appendChild(botMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            } catch (error) {
+                console.error('Chat error:', error);
+                notifications.add(
+                    'Chat Error',
+                    'Failed to get response from assistant.',
+                    notificationTypes.ERROR
+                );
+            } finally {
+                isBotResponding = false;
+                sendButton.disabled = false;
+                typingIndicator.style.display = 'none';
+            }
+        }
+
+        // Handle send button click
+        sendButton.addEventListener('click', () => {
+            sendMessage(chatInput.value);
+        });
+
+        // Handle enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage(chatInput.value);
+            }
+        });
+
+        // Handle input changes
+        chatInput.addEventListener('input', () => {
+            sendButton.disabled = !chatInput.value.trim() || isBotResponding;
+        });
+    </script>
+</body>
+</html>
